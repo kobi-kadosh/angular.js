@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - src\ng\filter\filter.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>src\ng\filter\filter.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">61.02</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">256</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">46.49</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">0.82</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+/**
+ * @ngdoc filter
+ * @name filter
+ * @kind function
+ *
+ * @description
+ * Selects a subset of items from `array` and returns it as a new array.
+ *
+ * @param {Array} array The source array.
+ * @param {string|Object|function()} expression The predicate to be used for selecting items from
+ *   `array`.
+ *
+ *   Can be one of:
+ *
+ *   - `string`: The string is used for matching against the contents of the `array`. All strings or
+ *     objects with string properties in `array` that match this string will be returned. This also
+ *     applies to nested object properties.
+ *     The predicate can be negated by prefixing the string with `!`.
+ *
+ *   - `Object`: A pattern object can be used to filter specific properties on objects contained
+ *     by `array`. For example `{name:&quot;M&quot;, phone:&quot;1&quot;}` predicate will return an array of items
+ *     which have property `name` containing &quot;M&quot; and property `phone` containing &quot;1&quot;. A special
+ *     property name `$` can be used (as in `{$:&quot;text&quot;}`) to accept a match against any
+ *     property of the object or its nested object properties. That&#039;s equivalent to the simple
+ *     substring match with a `string` as described above. The predicate can be negated by prefixing
+ *     the string with `!`.
+ *     For example `{name: &quot;!M&quot;}` predicate will return an array of items which have property `name`
+ *     not containing &quot;M&quot;.
+ *
+ *     Note that a named property will match properties on the same level only, while the special
+ *     `$` property will match properties on the same level or deeper. E.g. an array item like
+ *     `{name: {first: &#039;John&#039;, last: &#039;Doe&#039;}}` will **not** be matched by `{name: &#039;John&#039;}`, but
+ *     **will** be matched by `{$: &#039;John&#039;}`.
+ *
+ *   - `function(value, index, array)`: A predicate function can be used to write arbitrary filters.
+ *     The function is called for each element of the array, with the element, its index, and
+ *     the entire array itself as arguments.
+ *
+ *     The final result is an array of those elements that the predicate returned true for.
+ *
+ * @param {function(actual, expected)|true|undefined} comparator Comparator which is used in
+ *     determining if the expected value (from the filter expression) and actual value (from
+ *     the object in the array) should be considered a match.
+ *
+ *   Can be one of:
+ *
+ *   - `function(actual, expected)`:
+ *     The function will be given the object value and the predicate value to compare and
+ *     should return true if both values should be considered equal.
+ *
+ *   - `true`: A shorthand for `function(actual, expected) { return angular.equals(actual, expected)}`.
+ *     This is essentially strict comparison of expected and actual.
+ *
+ *   - `false|undefined`: A short hand for a function which will look for a substring match in case
+ *     insensitive way.
+ *
+ *     Primitive values are converted to strings. Objects are not compared against primitives,
+ *     unless they have a custom `toString` method (e.g. `Date` objects).
+ *
+ * @example
+   &lt;example&gt;
+     &lt;file name=&quot;index.html&quot;&gt;
+       &lt;div ng-init=&quot;friends = [{name:&#039;John&#039;, phone:&#039;555-1276&#039;},
+                                {name:&#039;Mary&#039;, phone:&#039;800-BIG-MARY&#039;},
+                                {name:&#039;Mike&#039;, phone:&#039;555-4321&#039;},
+                                {name:&#039;Adam&#039;, phone:&#039;555-5678&#039;},
+                                {name:&#039;Julie&#039;, phone:&#039;555-8765&#039;},
+                                {name:&#039;Juliette&#039;, phone:&#039;555-5678&#039;}]&quot;&gt;&lt;/div&gt;
+
+       &lt;label&gt;Search: &lt;input ng-model=&quot;searchText&quot;&gt;&lt;/label&gt;
+       &lt;table id=&quot;searchTextResults&quot;&gt;
+         &lt;tr&gt;&lt;th&gt;Name&lt;/th&gt;&lt;th&gt;Phone&lt;/th&gt;&lt;/tr&gt;
+         &lt;tr ng-repeat=&quot;friend in friends | filter:searchText&quot;&gt;
+           &lt;td&gt;{{friend.name}}&lt;/td&gt;
+           &lt;td&gt;{{friend.phone}}&lt;/td&gt;
+         &lt;/tr&gt;
+       &lt;/table&gt;
+       &lt;hr&gt;
+       &lt;label&gt;Any: &lt;input ng-model=&quot;search.$&quot;&gt;&lt;/label&gt; &lt;br&gt;
+       &lt;label&gt;Name only &lt;input ng-model=&quot;search.name&quot;&gt;&lt;/label&gt;&lt;br&gt;
+       &lt;label&gt;Phone only &lt;input ng-model=&quot;search.phone&quot;&gt;&lt;/label&gt;&lt;br&gt;
+       &lt;label&gt;Equality &lt;input type=&quot;checkbox&quot; ng-model=&quot;strict&quot;&gt;&lt;/label&gt;&lt;br&gt;
+       &lt;table id=&quot;searchObjResults&quot;&gt;
+         &lt;tr&gt;&lt;th&gt;Name&lt;/th&gt;&lt;th&gt;Phone&lt;/th&gt;&lt;/tr&gt;
+         &lt;tr ng-repeat=&quot;friendObj in friends | filter:search:strict&quot;&gt;
+           &lt;td&gt;{{friendObj.name}}&lt;/td&gt;
+           &lt;td&gt;{{friendObj.phone}}&lt;/td&gt;
+         &lt;/tr&gt;
+       &lt;/table&gt;
+     &lt;/file&gt;
+     &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+       var expectFriendNames = function(expectedNames, key) {
+         element.all(by.repeater(key + &#039; in friends&#039;).column(key + &#039;.name&#039;)).then(function(arr) {
+           arr.forEach(function(wd, i) {
+             expect(wd.getText()).toMatch(expectedNames[i]);
+           });
+         });
+       };
+
+       it(&#039;should search across all fields when filtering with a string&#039;, function() {
+         var searchText = element(by.model(&#039;searchText&#039;));
+         searchText.clear();
+         searchText.sendKeys(&#039;m&#039;);
+         expectFriendNames([&#039;Mary&#039;, &#039;Mike&#039;, &#039;Adam&#039;], &#039;friend&#039;);
+
+         searchText.clear();
+         searchText.sendKeys(&#039;76&#039;);
+         expectFriendNames([&#039;John&#039;, &#039;Julie&#039;], &#039;friend&#039;);
+       });
+
+       it(&#039;should search in specific fields when filtering with a predicate object&#039;, function() {
+         var searchAny = element(by.model(&#039;search.$&#039;));
+         searchAny.clear();
+         searchAny.sendKeys(&#039;i&#039;);
+         expectFriendNames([&#039;Mary&#039;, &#039;Mike&#039;, &#039;Julie&#039;, &#039;Juliette&#039;], &#039;friendObj&#039;);
+       });
+       it(&#039;should use a equal comparison when comparator is true&#039;, function() {
+         var searchName = element(by.model(&#039;search.name&#039;));
+         var strict = element(by.model(&#039;strict&#039;));
+         searchName.clear();
+         searchName.sendKeys(&#039;Julie&#039;);
+         strict.click();
+         expectFriendNames([&#039;Julie&#039;], &#039;friendObj&#039;);
+       });
+     &lt;/file&gt;
+   &lt;/example&gt;
+ */
+function filterFilter() {
+  return function(array, expression, comparator) {
+    if (!isArrayLike(array)) {
+      if (array == null) {
+        return array;
+      } else {
+        throw minErr(&#039;filter&#039;)(&#039;notarray&#039;, &#039;Expected array but received: {0}&#039;, array);
+      }
+    }
+
+    var expressionType = getTypeForFilter(expression);
+    var predicateFn;
+    var matchAgainstAnyProp;
+
+    switch (expressionType) {
+      case &#039;function&#039;:
+        predicateFn = expression;
+        break;
+      case &#039;boolean&#039;:
+      case &#039;null&#039;:
+      case &#039;number&#039;:
+      case &#039;string&#039;:
+        matchAgainstAnyProp = true;
+        //jshint -W086
+      case &#039;object&#039;:
+        //jshint +W086
+        predicateFn = createPredicateFn(expression, comparator, matchAgainstAnyProp);
+        break;
+      default:
+        return array;
+    }
+
+    return Array.prototype.filter.call(array, predicateFn);
+  };
+}
+
+// Helper functions for `filterFilter`
+function createPredicateFn(expression, comparator, matchAgainstAnyProp) {
+  var shouldMatchPrimitives = isObject(expression) &amp;&amp; (&#039;$&#039; in expression);
+  var predicateFn;
+
+  if (comparator === true) {
+    comparator = equals;
+  } else if (!isFunction(comparator)) {
+    comparator = function(actual, expected) {
+      if (isUndefined(actual)) {
+        // No substring matching against `undefined`
+        return false;
+      }
+      if ((actual === null) || (expected === null)) {
+        // No substring matching against `null`; only match against `null`
+        return actual === expected;
+      }
+      if (isObject(expected) || (isObject(actual) &amp;&amp; !hasCustomToString(actual))) {
+        // Should not compare primitives against objects, unless they have custom `toString` method
+        return false;
+      }
+
+      actual = lowercase(&#039;&#039; + actual);
+      expected = lowercase(&#039;&#039; + expected);
+      return actual.indexOf(expected) !== -1;
+    };
+  }
+
+  predicateFn = function(item) {
+    if (shouldMatchPrimitives &amp;&amp; !isObject(item)) {
+      return deepCompare(item, expression.$, comparator, false);
+    }
+    return deepCompare(item, expression, comparator, matchAgainstAnyProp);
+  };
+
+  return predicateFn;
+}
+
+function deepCompare(actual, expected, comparator, matchAgainstAnyProp, dontMatchWholeObject) {
+  var actualType = getTypeForFilter(actual);
+  var expectedType = getTypeForFilter(expected);
+
+  if ((expectedType === &#039;string&#039;) &amp;&amp; (expected.charAt(0) === &#039;!&#039;)) {
+    return !deepCompare(actual, expected.substring(1), comparator, matchAgainstAnyProp);
+  } else if (isArray(actual)) {
+    // In case `actual` is an array, consider it a match
+    // if ANY of it&#039;s items matches `expected`
+    return actual.some(function(item) {
+      return deepCompare(item, expected, comparator, matchAgainstAnyProp);
+    });
+  }
+
+  switch (actualType) {
+    case &#039;object&#039;:
+      var key;
+      if (matchAgainstAnyProp) {
+        for (key in actual) {
+          if ((key.charAt(0) !== &#039;$&#039;) &amp;&amp; deepCompare(actual[key], expected, comparator, true)) {
+            return true;
+          }
+        }
+        return dontMatchWholeObject ? false : deepCompare(actual, expected, comparator, false);
+      } else if (expectedType === &#039;object&#039;) {
+        for (key in expected) {
+          var expectedVal = expected[key];
+          if (isFunction(expectedVal) || isUndefined(expectedVal)) {
+            continue;
+          }
+
+          var matchAnyProperty = key === &#039;$&#039;;
+          var actualVal = matchAnyProperty ? actual : actual[key];
+          if (!deepCompare(actualVal, expectedVal, comparator, matchAnyProperty, matchAnyProperty)) {
+            return false;
+          }
+        }
+        return true;
+      } else {
+        return comparator(actual, expected);
+      }
+      break;
+    case &#039;function&#039;:
+      return false;
+    default:
+      return comparator(actual, expected);
+  }
+}
+
+// Used for easily differentiating between `null` and actual `object`
+function getTypeForFilter(val) {
+  return (val === null) ? &#039;null&#039; : typeof val;
+}</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

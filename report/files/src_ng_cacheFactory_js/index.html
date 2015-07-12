@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - src\ng\cacheFactory.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>src\ng\cacheFactory.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">70.00</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">401</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">51.99</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">0.82</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+/**
+ * @ngdoc service
+ * @name $cacheFactory
+ *
+ * @description
+ * Factory that constructs {@link $cacheFactory.Cache Cache} objects and gives access to
+ * them.
+ *
+ * ```js
+ *
+ *  var cache = $cacheFactory(&#039;cacheId&#039;);
+ *  expect($cacheFactory.get(&#039;cacheId&#039;)).toBe(cache);
+ *  expect($cacheFactory.get(&#039;noSuchCacheId&#039;)).not.toBeDefined();
+ *
+ *  cache.put(&quot;key&quot;, &quot;value&quot;);
+ *  cache.put(&quot;another key&quot;, &quot;another value&quot;);
+ *
+ *  // We&#039;ve specified no options on creation
+ *  expect(cache.info()).toEqual({id: &#039;cacheId&#039;, size: 2});
+ *
+ * ```
+ *
+ *
+ * @param {string} cacheId Name or id of the newly created cache.
+ * @param {object=} options Options object that specifies the cache behavior. Properties:
+ *
+ *   - `{number=}` `capacity` — turns the cache into LRU cache.
+ *
+ * @returns {object} Newly created cache object with the following set of methods:
+ *
+ * - `{object}` `info()` — Returns id, size, and options of cache.
+ * - `{{*}}` `put({string} key, {*} value)` — Puts a new key-value pair into the cache and returns
+ *   it.
+ * - `{{*}}` `get({string} key)` — Returns cached value for `key` or undefined for cache miss.
+ * - `{void}` `remove({string} key)` — Removes a key-value pair from the cache.
+ * - `{void}` `removeAll()` — Removes all cached values.
+ * - `{void}` `destroy()` — Removes references to this cache from $cacheFactory.
+ *
+ * @example
+   &lt;example module=&quot;cacheExampleApp&quot;&gt;
+     &lt;file name=&quot;index.html&quot;&gt;
+       &lt;div ng-controller=&quot;CacheController&quot;&gt;
+         &lt;input ng-model=&quot;newCacheKey&quot; placeholder=&quot;Key&quot;&gt;
+         &lt;input ng-model=&quot;newCacheValue&quot; placeholder=&quot;Value&quot;&gt;
+         &lt;button ng-click=&quot;put(newCacheKey, newCacheValue)&quot;&gt;Cache&lt;/button&gt;
+
+         &lt;p ng-if=&quot;keys.length&quot;&gt;Cached Values&lt;/p&gt;
+         &lt;div ng-repeat=&quot;key in keys&quot;&gt;
+           &lt;span ng-bind=&quot;key&quot;&gt;&lt;/span&gt;
+           &lt;span&gt;: &lt;/span&gt;
+           &lt;b ng-bind=&quot;cache.get(key)&quot;&gt;&lt;/b&gt;
+         &lt;/div&gt;
+
+         &lt;p&gt;Cache Info&lt;/p&gt;
+         &lt;div ng-repeat=&quot;(key, value) in cache.info()&quot;&gt;
+           &lt;span ng-bind=&quot;key&quot;&gt;&lt;/span&gt;
+           &lt;span&gt;: &lt;/span&gt;
+           &lt;b ng-bind=&quot;value&quot;&gt;&lt;/b&gt;
+         &lt;/div&gt;
+       &lt;/div&gt;
+     &lt;/file&gt;
+     &lt;file name=&quot;script.js&quot;&gt;
+       angular.module(&#039;cacheExampleApp&#039;, []).
+         controller(&#039;CacheController&#039;, [&#039;$scope&#039;, &#039;$cacheFactory&#039;, function($scope, $cacheFactory) {
+           $scope.keys = [];
+           $scope.cache = $cacheFactory(&#039;cacheId&#039;);
+           $scope.put = function(key, value) {
+             if ($scope.cache.get(key) === undefined) {
+               $scope.keys.push(key);
+             }
+             $scope.cache.put(key, value === undefined ? null : value);
+           };
+         }]);
+     &lt;/file&gt;
+     &lt;file name=&quot;style.css&quot;&gt;
+       p {
+         margin: 10px 0 3px;
+       }
+     &lt;/file&gt;
+   &lt;/example&gt;
+ */
+function $CacheFactoryProvider() {
+
+  this.$get = function() {
+    var caches = {};
+
+    function cacheFactory(cacheId, options) {
+      if (cacheId in caches) {
+        throw minErr(&#039;$cacheFactory&#039;)(&#039;iid&#039;, &quot;CacheId &#039;{0}&#039; is already taken!&quot;, cacheId);
+      }
+
+      var size = 0,
+          stats = extend({}, options, {id: cacheId}),
+          data = {},
+          capacity = (options &amp;&amp; options.capacity) || Number.MAX_VALUE,
+          lruHash = {},
+          freshEnd = null,
+          staleEnd = null;
+
+      /**
+       * @ngdoc type
+       * @name $cacheFactory.Cache
+       *
+       * @description
+       * A cache object used to store and retrieve data, primarily used by
+       * {@link $http $http} and the {@link ng.directive:script script} directive to cache
+       * templates and other data.
+       *
+       * ```js
+       *  angular.module(&#039;superCache&#039;)
+       *    .factory(&#039;superCache&#039;, [&#039;$cacheFactory&#039;, function($cacheFactory) {
+       *      return $cacheFactory(&#039;super-cache&#039;);
+       *    }]);
+       * ```
+       *
+       * Example test:
+       *
+       * ```js
+       *  it(&#039;should behave like a cache&#039;, inject(function(superCache) {
+       *    superCache.put(&#039;key&#039;, &#039;value&#039;);
+       *    superCache.put(&#039;another key&#039;, &#039;another value&#039;);
+       *
+       *    expect(superCache.info()).toEqual({
+       *      id: &#039;super-cache&#039;,
+       *      size: 2
+       *    });
+       *
+       *    superCache.remove(&#039;another key&#039;);
+       *    expect(superCache.get(&#039;another key&#039;)).toBeUndefined();
+       *
+       *    superCache.removeAll();
+       *    expect(superCache.info()).toEqual({
+       *      id: &#039;super-cache&#039;,
+       *      size: 0
+       *    });
+       *  }));
+       * ```
+       */
+      return caches[cacheId] = {
+
+        /**
+         * @ngdoc method
+         * @name $cacheFactory.Cache#put
+         * @kind function
+         *
+         * @description
+         * Inserts a named entry into the {@link $cacheFactory.Cache Cache} object to be
+         * retrieved later, and incrementing the size of the cache if the key was not already
+         * present in the cache. If behaving like an LRU cache, it will also remove stale
+         * entries from the set.
+         *
+         * It will not insert undefined values into the cache.
+         *
+         * @param {string} key the key under which the cached data is stored.
+         * @param {*} value the value to store alongside the key. If it is undefined, the key
+         *    will not be stored.
+         * @returns {*} the value stored.
+         */
+        put: function(key, value) {
+          if (isUndefined(value)) return;
+          if (capacity &lt; Number.MAX_VALUE) {
+            var lruEntry = lruHash[key] || (lruHash[key] = {key: key});
+
+            refresh(lruEntry);
+          }
+
+          if (!(key in data)) size++;
+          data[key] = value;
+
+          if (size &gt; capacity) {
+            this.remove(staleEnd.key);
+          }
+
+          return value;
+        },
+
+        /**
+         * @ngdoc method
+         * @name $cacheFactory.Cache#get
+         * @kind function
+         *
+         * @description
+         * Retrieves named data stored in the {@link $cacheFactory.Cache Cache} object.
+         *
+         * @param {string} key the key of the data to be retrieved
+         * @returns {*} the value stored.
+         */
+        get: function(key) {
+          if (capacity &lt; Number.MAX_VALUE) {
+            var lruEntry = lruHash[key];
+
+            if (!lruEntry) return;
+
+            refresh(lruEntry);
+          }
+
+          return data[key];
+        },
+
+
+        /**
+         * @ngdoc method
+         * @name $cacheFactory.Cache#remove
+         * @kind function
+         *
+         * @description
+         * Removes an entry from the {@link $cacheFactory.Cache Cache} object.
+         *
+         * @param {string} key the key of the entry to be removed
+         */
+        remove: function(key) {
+          if (capacity &lt; Number.MAX_VALUE) {
+            var lruEntry = lruHash[key];
+
+            if (!lruEntry) return;
+
+            if (lruEntry == freshEnd) freshEnd = lruEntry.p;
+            if (lruEntry == staleEnd) staleEnd = lruEntry.n;
+            link(lruEntry.n,lruEntry.p);
+
+            delete lruHash[key];
+          }
+
+          delete data[key];
+          size--;
+        },
+
+
+        /**
+         * @ngdoc method
+         * @name $cacheFactory.Cache#removeAll
+         * @kind function
+         *
+         * @description
+         * Clears the cache object of any entries.
+         */
+        removeAll: function() {
+          data = {};
+          size = 0;
+          lruHash = {};
+          freshEnd = staleEnd = null;
+        },
+
+
+        /**
+         * @ngdoc method
+         * @name $cacheFactory.Cache#destroy
+         * @kind function
+         *
+         * @description
+         * Destroys the {@link $cacheFactory.Cache Cache} object entirely,
+         * removing it from the {@link $cacheFactory $cacheFactory} set.
+         */
+        destroy: function() {
+          data = null;
+          stats = null;
+          lruHash = null;
+          delete caches[cacheId];
+        },
+
+
+        /**
+         * @ngdoc method
+         * @name $cacheFactory.Cache#info
+         * @kind function
+         *
+         * @description
+         * Retrieve information regarding a particular {@link $cacheFactory.Cache Cache}.
+         *
+         * @returns {object} an object with the following properties:
+         *   &lt;ul&gt;
+         *     &lt;li&gt;**id**: the id of the cache instance&lt;/li&gt;
+         *     &lt;li&gt;**size**: the number of entries kept in the cache instance&lt;/li&gt;
+         *     &lt;li&gt;**...**: any additional properties from the options object when creating the
+         *       cache.&lt;/li&gt;
+         *   &lt;/ul&gt;
+         */
+        info: function() {
+          return extend({}, stats, {size: size});
+        }
+      };
+
+
+      /**
+       * makes the `entry` the freshEnd of the LRU linked list
+       */
+      function refresh(entry) {
+        if (entry != freshEnd) {
+          if (!staleEnd) {
+            staleEnd = entry;
+          } else if (staleEnd == entry) {
+            staleEnd = entry.n;
+          }
+
+          link(entry.n, entry.p);
+          link(entry, freshEnd);
+          freshEnd = entry;
+          freshEnd.n = null;
+        }
+      }
+
+
+      /**
+       * bidirectionally links two entries of the LRU linked list
+       */
+      function link(nextEntry, prevEntry) {
+        if (nextEntry != prevEntry) {
+          if (nextEntry) nextEntry.p = prevEntry; //p stands for previous, &#039;prev&#039; didn&#039;t minify
+          if (prevEntry) prevEntry.n = nextEntry; //n stands for next, &#039;next&#039; didn&#039;t minify
+        }
+      }
+    }
+
+
+  /**
+   * @ngdoc method
+   * @name $cacheFactory#info
+   *
+   * @description
+   * Get information about all the caches that have been created
+   *
+   * @returns {Object} - key-value map of `cacheId` to the result of calling `cache#info`
+   */
+    cacheFactory.info = function() {
+      var info = {};
+      forEach(caches, function(cache, cacheId) {
+        info[cacheId] = cache.info();
+      });
+      return info;
+    };
+
+
+  /**
+   * @ngdoc method
+   * @name $cacheFactory#get
+   *
+   * @description
+   * Get access to a cache object by the `cacheId` used when it was created.
+   *
+   * @param {string} cacheId Name or id of a cache to access.
+   * @returns {object} Cache object identified by the cacheId or undefined if no such cache.
+   */
+    cacheFactory.get = function(cacheId) {
+      return caches[cacheId];
+    };
+
+
+    return cacheFactory;
+  };
+}
+
+/**
+ * @ngdoc service
+ * @name $templateCache
+ *
+ * @description
+ * The first time a template is used, it is loaded in the template cache for quick retrieval. You
+ * can load templates directly into the cache in a `script` tag, or by consuming the
+ * `$templateCache` service directly.
+ *
+ * Adding via the `script` tag:
+ *
+ * ```html
+ *   &lt;script type=&quot;text/ng-template&quot; id=&quot;templateId.html&quot;&gt;
+ *     &lt;p&gt;This is the content of the template&lt;/p&gt;
+ *   &lt;/script&gt;
+ * ```
+ *
+ * **Note:** the `script` tag containing the template does not need to be included in the `head` of
+ * the document, but it must be a descendent of the {@link ng.$rootElement $rootElement} (IE,
+ * element with ng-app attribute), otherwise the template will be ignored.
+ *
+ * Adding via the `$templateCache` service:
+ *
+ * ```js
+ * var myApp = angular.module(&#039;myApp&#039;, []);
+ * myApp.run(function($templateCache) {
+ *   $templateCache.put(&#039;templateId.html&#039;, &#039;This is the content of the template&#039;);
+ * });
+ * ```
+ *
+ * To retrieve the template later, simply use it in your HTML:
+ * ```html
+ * &lt;div ng-include=&quot; &#039;templateId.html&#039; &quot;&gt;&lt;/div&gt;
+ * ```
+ *
+ * or get it via Javascript:
+ * ```js
+ * $templateCache.get(&#039;templateId.html&#039;)
+ * ```
+ *
+ * See {@link ng.$cacheFactory $cacheFactory}.
+ *
+ */
+function $TemplateCacheProvider() {
+  this.$get = [&#039;$cacheFactory&#039;, function($cacheFactory) {
+    return $cacheFactory(&#039;templates&#039;);
+  }];
+}</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

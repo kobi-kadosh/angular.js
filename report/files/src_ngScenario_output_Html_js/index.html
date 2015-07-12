@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - src\ngScenario\output\Html.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>src\ngScenario\output\Html.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">69.08</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">171</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">21.16</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">1.76</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+/**
+ * User Interface for the Scenario Runner.
+ *
+ * TODO(esprehn): This should be refactored now that ObjectModel exists
+ *  to use angular bindings for the UI.
+ */
+angular.scenario.output(&#039;html&#039;, function(context, runner, model) {
+  var specUiMap = {},
+      lastStepUiMap = {};
+
+  context.append(
+    &#039;&lt;div id=&quot;header&quot;&gt;&#039; +
+    &#039;  &lt;h1&gt;&lt;span class=&quot;angular&quot;&gt;AngularJS&lt;/span&gt;: Scenario Test Runner&lt;/h1&gt;&#039; +
+    &#039;  &lt;ul id=&quot;status-legend&quot; class=&quot;status-display&quot;&gt;&#039; +
+    &#039;    &lt;li class=&quot;status-error&quot;&gt;0 Errors&lt;/li&gt;&#039; +
+    &#039;    &lt;li class=&quot;status-failure&quot;&gt;0 Failures&lt;/li&gt;&#039; +
+    &#039;    &lt;li class=&quot;status-success&quot;&gt;0 Passed&lt;/li&gt;&#039; +
+    &#039;  &lt;/ul&gt;&#039; +
+    &#039;&lt;/div&gt;&#039; +
+    &#039;&lt;div id=&quot;specs&quot;&gt;&#039; +
+    &#039;  &lt;div class=&quot;test-children&quot;&gt;&lt;/div&gt;&#039; +
+    &#039;&lt;/div&gt;&#039;
+  );
+
+  runner.on(&#039;InteractivePause&#039;, function(spec) {
+    var ui = lastStepUiMap[spec.id];
+    ui.find(&#039;.test-title&#039;).
+      html(&#039;paused... &lt;a href=&quot;javascript:resume()&quot;&gt;resume&lt;/a&gt; when ready.&#039;);
+  });
+
+  runner.on(&#039;SpecBegin&#039;, function(spec) {
+    var ui = findContext(spec);
+    ui.find(&#039;&gt; .tests&#039;).append(
+      &#039;&lt;li class=&quot;status-pending test-it&quot;&gt;&lt;/li&gt;&#039;
+    );
+    ui = ui.find(&#039;&gt; .tests li:last&#039;);
+    ui.append(
+      &#039;&lt;div class=&quot;test-info&quot;&gt;&#039; +
+      &#039;  &lt;p class=&quot;test-title&quot;&gt;&#039; +
+      &#039;    &lt;span class=&quot;timer-result&quot;&gt;&lt;/span&gt;&#039; +
+      &#039;    &lt;span class=&quot;test-name&quot;&gt;&lt;/span&gt;&#039; +
+      &#039;  &lt;/p&gt;&#039; +
+      &#039;&lt;/div&gt;&#039; +
+      &#039;&lt;div class=&quot;scrollpane&quot;&gt;&#039; +
+      &#039;  &lt;ol class=&quot;test-actions&quot;&gt;&lt;/ol&gt;&#039; +
+      &#039;&lt;/div&gt;&#039;
+    );
+    ui.find(&#039;&gt; .test-info .test-name&#039;).text(spec.name);
+    ui.find(&#039;&gt; .test-info&#039;).click(function() {
+      var scrollpane = ui.find(&#039;&gt; .scrollpane&#039;);
+      var actions = scrollpane.find(&#039;&gt; .test-actions&#039;);
+      var name = context.find(&#039;&gt; .test-info .test-name&#039;);
+      if (actions.find(&#039;:visible&#039;).length) {
+        actions.hide();
+        name.removeClass(&#039;open&#039;).addClass(&#039;closed&#039;);
+      } else {
+        actions.show();
+        scrollpane.attr(&#039;scrollTop&#039;, scrollpane.attr(&#039;scrollHeight&#039;));
+        name.removeClass(&#039;closed&#039;).addClass(&#039;open&#039;);
+      }
+    });
+
+    specUiMap[spec.id] = ui;
+  });
+
+  runner.on(&#039;SpecError&#039;, function(spec, error) {
+    var ui = specUiMap[spec.id];
+    ui.append(&#039;&lt;pre&gt;&lt;/pre&gt;&#039;);
+    ui.find(&#039;&gt; pre&#039;).text(formatException(error));
+  });
+
+  runner.on(&#039;SpecEnd&#039;, function(spec) {
+    var ui = specUiMap[spec.id];
+    spec = model.getSpec(spec.id);
+    ui.removeClass(&#039;status-pending&#039;);
+    ui.addClass(&#039;status-&#039; + spec.status);
+    ui.find(&quot;&gt; .test-info .timer-result&quot;).text(spec.duration + &quot;ms&quot;);
+    if (spec.status === &#039;success&#039;) {
+      ui.find(&#039;&gt; .test-info .test-name&#039;).addClass(&#039;closed&#039;);
+      ui.find(&#039;&gt; .scrollpane .test-actions&#039;).hide();
+    }
+    updateTotals(spec.status);
+  });
+
+  runner.on(&#039;StepBegin&#039;, function(spec, step) {
+    var ui = specUiMap[spec.id];
+    spec = model.getSpec(spec.id);
+    step = spec.getLastStep();
+    ui.find(&#039;&gt; .scrollpane .test-actions&#039;).append(&#039;&lt;li class=&quot;status-pending&quot;&gt;&lt;/li&gt;&#039;);
+    var stepUi = lastStepUiMap[spec.id] = ui.find(&#039;&gt; .scrollpane .test-actions li:last&#039;);
+    stepUi.append(
+      &#039;&lt;div class=&quot;timer-result&quot;&gt;&lt;/div&gt;&#039; +
+      &#039;&lt;div class=&quot;test-title&quot;&gt;&lt;/div&gt;&#039;
+    );
+    stepUi.find(&#039;&gt; .test-title&#039;).text(step.name);
+    var scrollpane = stepUi.parents(&#039;.scrollpane&#039;);
+    scrollpane.attr(&#039;scrollTop&#039;, scrollpane.attr(&#039;scrollHeight&#039;));
+  });
+
+  runner.on(&#039;StepFailure&#039;, function(spec, step, error) {
+    var ui = lastStepUiMap[spec.id];
+    addError(ui, step.line, error);
+  });
+
+  runner.on(&#039;StepError&#039;, function(spec, step, error) {
+    var ui = lastStepUiMap[spec.id];
+    addError(ui, step.line, error);
+  });
+
+  runner.on(&#039;StepEnd&#039;, function(spec, step) {
+    var stepUi = lastStepUiMap[spec.id];
+    spec = model.getSpec(spec.id);
+    step = spec.getLastStep();
+    stepUi.find(&#039;.timer-result&#039;).text(step.duration + &#039;ms&#039;);
+    stepUi.removeClass(&#039;status-pending&#039;);
+    stepUi.addClass(&#039;status-&#039; + step.status);
+    var scrollpane = specUiMap[spec.id].find(&#039;&gt; .scrollpane&#039;);
+    scrollpane.attr(&#039;scrollTop&#039;, scrollpane.attr(&#039;scrollHeight&#039;));
+  });
+
+  /**
+   * Finds the context of a spec block defined by the passed definition.
+   *
+   * @param {Object} The definition created by the Describe object.
+   */
+  function findContext(spec) {
+    var currentContext = context.find(&#039;#specs&#039;);
+    angular.forEach(model.getDefinitionPath(spec), function(defn) {
+      var id = &#039;describe-&#039; + defn.id;
+      if (!context.find(&#039;#&#039; + id).length) {
+        currentContext.find(&#039;&gt; .test-children&#039;).append(
+          &#039;&lt;div class=&quot;test-describe&quot; id=&quot;&#039; + id + &#039;&quot;&gt;&#039; +
+          &#039;  &lt;h2&gt;&lt;/h2&gt;&#039; +
+          &#039;  &lt;div class=&quot;test-children&quot;&gt;&lt;/div&gt;&#039; +
+          &#039;  &lt;ul class=&quot;tests&quot;&gt;&lt;/ul&gt;&#039; +
+          &#039;&lt;/div&gt;&#039;
+        );
+        context.find(&#039;#&#039; + id).find(&#039;&gt; h2&#039;).text(&#039;describe: &#039; + defn.name);
+      }
+      currentContext = context.find(&#039;#&#039; + id);
+    });
+    return context.find(&#039;#describe-&#039; + spec.definition.id);
+  }
+
+  /**
+   * Updates the test counter for the status.
+   *
+   * @param {string} the status.
+   */
+  function updateTotals(status) {
+    var legend = context.find(&#039;#status-legend .status-&#039; + status);
+    var parts = legend.text().split(&#039; &#039;);
+    var value = (parts[0] * 1) + 1;
+    legend.text(value + &#039; &#039; + parts[1]);
+  }
+
+  /**
+   * Add an error to a step.
+   *
+   * @param {Object} The JQuery wrapped context
+   * @param {function()} fn() that should return the file/line number of the error
+   * @param {Object} the error.
+   */
+  function addError(context, line, error) {
+    context.find(&#039;.test-title&#039;).append(&#039;&lt;pre&gt;&lt;/pre&gt;&#039;);
+    var message = _jQuery.trim(line() + &#039;\n\n&#039; + formatException(error));
+    context.find(&#039;.test-title pre:last&#039;).text(message);
+  }
+});</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

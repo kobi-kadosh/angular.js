@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - src\ng\filter.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>src\ng\filter.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">73.49</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">163</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">10.44</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">0.22</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+/* global currencyFilter: true,
+ dateFilter: true,
+ filterFilter: true,
+ jsonFilter: true,
+ limitToFilter: true,
+ lowercaseFilter: true,
+ numberFilter: true,
+ orderByFilter: true,
+ uppercaseFilter: true,
+ */
+
+/**
+ * @ngdoc provider
+ * @name $filterProvider
+ * @description
+ *
+ * Filters are just functions which transform input to an output. However filters need to be
+ * Dependency Injected. To achieve this a filter definition consists of a factory function which is
+ * annotated with dependencies and is responsible for creating a filter function.
+ *
+ * &lt;div class=&quot;alert alert-warning&quot;&gt;
+ * **Note:** Filter names must be valid angular {@link expression} identifiers, such as `uppercase` or `orderBy`.
+ * Names with special characters, such as hyphens and dots, are not allowed. If you wish to namespace
+ * your filters, then you can use capitalization (`myappSubsectionFilterx`) or underscores
+ * (`myapp_subsection_filterx`).
+ * &lt;/div&gt;
+ *
+ * ```js
+ *   // Filter registration
+ *   function MyModule($provide, $filterProvider) {
+ *     // create a service to demonstrate injection (not always needed)
+ *     $provide.value(&#039;greet&#039;, function(name){
+ *       return &#039;Hello &#039; + name + &#039;!&#039;;
+ *     });
+ *
+ *     // register a filter factory which uses the
+ *     // greet service to demonstrate DI.
+ *     $filterProvider.register(&#039;greet&#039;, function(greet){
+ *       // return the filter function which uses the greet service
+ *       // to generate salutation
+ *       return function(text) {
+ *         // filters need to be forgiving so check input validity
+ *         return text &amp;&amp; greet(text) || text;
+ *       };
+ *     });
+ *   }
+ * ```
+ *
+ * The filter function is registered with the `$injector` under the filter name suffix with
+ * `Filter`.
+ *
+ * ```js
+ *   it(&#039;should be the same instance&#039;, inject(
+ *     function($filterProvider) {
+ *       $filterProvider.register(&#039;reverse&#039;, function(){
+ *         return ...;
+ *       });
+ *     },
+ *     function($filter, reverseFilter) {
+ *       expect($filter(&#039;reverse&#039;)).toBe(reverseFilter);
+ *     });
+ * ```
+ *
+ *
+ * For more information about how angular filters work, and how to create your own filters, see
+ * {@link guide/filter Filters} in the Angular Developer Guide.
+ */
+
+/**
+ * @ngdoc service
+ * @name $filter
+ * @kind function
+ * @description
+ * Filters are used for formatting data displayed to the user.
+ *
+ * The general syntax in templates is as follows:
+ *
+ *         {{ expression [| filter_name[:parameter_value] ... ] }}
+ *
+ * @param {String} name Name of the filter function to retrieve
+ * @return {Function} the filter function
+ * @example
+   &lt;example name=&quot;$filter&quot; module=&quot;filterExample&quot;&gt;
+     &lt;file name=&quot;index.html&quot;&gt;
+       &lt;div ng-controller=&quot;MainCtrl&quot;&gt;
+        &lt;h3&gt;{{ originalText }}&lt;/h3&gt;
+        &lt;h3&gt;{{ filteredText }}&lt;/h3&gt;
+       &lt;/div&gt;
+     &lt;/file&gt;
+
+     &lt;file name=&quot;script.js&quot;&gt;
+      angular.module(&#039;filterExample&#039;, [])
+      .controller(&#039;MainCtrl&#039;, function($scope, $filter) {
+        $scope.originalText = &#039;hello&#039;;
+        $scope.filteredText = $filter(&#039;uppercase&#039;)($scope.originalText);
+      });
+     &lt;/file&gt;
+   &lt;/example&gt;
+  */
+$FilterProvider.$inject = [&#039;$provide&#039;];
+function $FilterProvider($provide) {
+  var suffix = &#039;Filter&#039;;
+
+  /**
+   * @ngdoc method
+   * @name $filterProvider#register
+   * @param {string|Object} name Name of the filter function, or an object map of filters where
+   *    the keys are the filter names and the values are the filter factories.
+   *
+   *    &lt;div class=&quot;alert alert-warning&quot;&gt;
+   *    **Note:** Filter names must be valid angular {@link expression} identifiers, such as `uppercase` or `orderBy`.
+   *    Names with special characters, such as hyphens and dots, are not allowed. If you wish to namespace
+   *    your filters, then you can use capitalization (`myappSubsectionFilterx`) or underscores
+   *    (`myapp_subsection_filterx`).
+   *    &lt;/div&gt;
+   * @returns {Object} Registered filter instance, or if a map of filters was provided then a map
+   *    of the registered filter instances.
+   */
+  function register(name, factory) {
+    if (isObject(name)) {
+      var filters = {};
+      forEach(name, function(filter, key) {
+        filters[key] = register(key, filter);
+      });
+      return filters;
+    } else {
+      return $provide.factory(name + suffix, factory);
+    }
+  }
+  this.register = register;
+
+  this.$get = [&#039;$injector&#039;, function($injector) {
+    return function(name) {
+      return $injector.get(name + suffix);
+    };
+  }];
+
+  ////////////////////////////////////////
+
+  /* global
+    currencyFilter: false,
+    dateFilter: false,
+    filterFilter: false,
+    jsonFilter: false,
+    limitToFilter: false,
+    lowercaseFilter: false,
+    numberFilter: false,
+    orderByFilter: false,
+    uppercaseFilter: false,
+  */
+
+  register(&#039;currency&#039;, currencyFilter);
+  register(&#039;date&#039;, dateFilter);
+  register(&#039;filter&#039;, filterFilter);
+  register(&#039;json&#039;, jsonFilter);
+  register(&#039;limitTo&#039;, limitToFilter);
+  register(&#039;lowercase&#039;, lowercaseFilter);
+  register(&#039;number&#039;, numberFilter);
+  register(&#039;orderBy&#039;, orderByFilter);
+  register(&#039;uppercase&#039;, uppercaseFilter);
+}</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

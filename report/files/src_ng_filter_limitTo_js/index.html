@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - src\ng\filter\limitTo.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>src\ng\filter\limitTo.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">59.71</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">126</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">27.60</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">0.23</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+/**
+ * @ngdoc filter
+ * @name limitTo
+ * @kind function
+ *
+ * @description
+ * Creates a new array or string containing only a specified number of elements. The elements
+ * are taken from either the beginning or the end of the source array, string or number, as specified by
+ * the value and sign (positive or negative) of `limit`. If a number is used as input, it is
+ * converted to a string.
+ *
+ * @param {Array|string|number} input Source array, string or number to be limited.
+ * @param {string|number} limit The length of the returned array or string. If the `limit` number
+ *     is positive, `limit` number of items from the beginning of the source array/string are copied.
+ *     If the number is negative, `limit` number  of items from the end of the source array/string
+ *     are copied. The `limit` will be trimmed if it exceeds `array.length`. If `limit` is undefined,
+ *     the input will be returned unchanged.
+ * @param {(string|number)=} begin Index at which to begin limitation. As a negative index, `begin`
+ *     indicates an offset from the end of `input`. Defaults to `0`.
+ * @returns {Array|string} A new sub-array or substring of length `limit` or less if input array
+ *     had less than `limit` elements.
+ *
+ * @example
+   &lt;example module=&quot;limitToExample&quot;&gt;
+     &lt;file name=&quot;index.html&quot;&gt;
+       &lt;script&gt;
+         angular.module(&#039;limitToExample&#039;, [])
+           .controller(&#039;ExampleController&#039;, [&#039;$scope&#039;, function($scope) {
+             $scope.numbers = [1,2,3,4,5,6,7,8,9];
+             $scope.letters = &quot;abcdefghi&quot;;
+             $scope.longNumber = 2345432342;
+             $scope.numLimit = 3;
+             $scope.letterLimit = 3;
+             $scope.longNumberLimit = 3;
+           }]);
+       &lt;/script&gt;
+       &lt;div ng-controller=&quot;ExampleController&quot;&gt;
+         &lt;label&gt;
+            Limit {{numbers}} to:
+            &lt;input type=&quot;number&quot; step=&quot;1&quot; ng-model=&quot;numLimit&quot;&gt;
+         &lt;/label&gt;
+         &lt;p&gt;Output numbers: {{ numbers | limitTo:numLimit }}&lt;/p&gt;
+         &lt;label&gt;
+            Limit {{letters}} to:
+            &lt;input type=&quot;number&quot; step=&quot;1&quot; ng-model=&quot;letterLimit&quot;&gt;
+         &lt;/label&gt;
+         &lt;p&gt;Output letters: {{ letters | limitTo:letterLimit }}&lt;/p&gt;
+         &lt;label&gt;
+            Limit {{longNumber}} to:
+            &lt;input type=&quot;number&quot; step=&quot;1&quot; ng-model=&quot;longNumberLimit&quot;&gt;
+         &lt;/label&gt;
+         &lt;p&gt;Output long number: {{ longNumber | limitTo:longNumberLimit }}&lt;/p&gt;
+       &lt;/div&gt;
+     &lt;/file&gt;
+     &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+       var numLimitInput = element(by.model(&#039;numLimit&#039;));
+       var letterLimitInput = element(by.model(&#039;letterLimit&#039;));
+       var longNumberLimitInput = element(by.model(&#039;longNumberLimit&#039;));
+       var limitedNumbers = element(by.binding(&#039;numbers | limitTo:numLimit&#039;));
+       var limitedLetters = element(by.binding(&#039;letters | limitTo:letterLimit&#039;));
+       var limitedLongNumber = element(by.binding(&#039;longNumber | limitTo:longNumberLimit&#039;));
+
+       it(&#039;should limit the number array to first three items&#039;, function() {
+         expect(numLimitInput.getAttribute(&#039;value&#039;)).toBe(&#039;3&#039;);
+         expect(letterLimitInput.getAttribute(&#039;value&#039;)).toBe(&#039;3&#039;);
+         expect(longNumberLimitInput.getAttribute(&#039;value&#039;)).toBe(&#039;3&#039;);
+         expect(limitedNumbers.getText()).toEqual(&#039;Output numbers: [1,2,3]&#039;);
+         expect(limitedLetters.getText()).toEqual(&#039;Output letters: abc&#039;);
+         expect(limitedLongNumber.getText()).toEqual(&#039;Output long number: 234&#039;);
+       });
+
+       // There is a bug in safari and protractor that doesn&#039;t like the minus key
+       // it(&#039;should update the output when -3 is entered&#039;, function() {
+       //   numLimitInput.clear();
+       //   numLimitInput.sendKeys(&#039;-3&#039;);
+       //   letterLimitInput.clear();
+       //   letterLimitInput.sendKeys(&#039;-3&#039;);
+       //   longNumberLimitInput.clear();
+       //   longNumberLimitInput.sendKeys(&#039;-3&#039;);
+       //   expect(limitedNumbers.getText()).toEqual(&#039;Output numbers: [7,8,9]&#039;);
+       //   expect(limitedLetters.getText()).toEqual(&#039;Output letters: ghi&#039;);
+       //   expect(limitedLongNumber.getText()).toEqual(&#039;Output long number: 342&#039;);
+       // });
+
+       it(&#039;should not exceed the maximum size of input array&#039;, function() {
+         numLimitInput.clear();
+         numLimitInput.sendKeys(&#039;100&#039;);
+         letterLimitInput.clear();
+         letterLimitInput.sendKeys(&#039;100&#039;);
+         longNumberLimitInput.clear();
+         longNumberLimitInput.sendKeys(&#039;100&#039;);
+         expect(limitedNumbers.getText()).toEqual(&#039;Output numbers: [1,2,3,4,5,6,7,8,9]&#039;);
+         expect(limitedLetters.getText()).toEqual(&#039;Output letters: abcdefghi&#039;);
+         expect(limitedLongNumber.getText()).toEqual(&#039;Output long number: 2345432342&#039;);
+       });
+     &lt;/file&gt;
+   &lt;/example&gt;
+*/
+function limitToFilter() {
+  return function(input, limit, begin) {
+    if (Math.abs(Number(limit)) === Infinity) {
+      limit = Number(limit);
+    } else {
+      limit = toInt(limit);
+    }
+    if (isNaN(limit)) return input;
+
+    if (isNumber(input)) input = input.toString();
+    if (!isArray(input) &amp;&amp; !isString(input)) return input;
+
+    begin = (!begin || isNaN(begin)) ? 0 : toInt(begin);
+    begin = (begin &lt; 0 &amp;&amp; begin &gt;= -input.length) ? input.length + begin : begin;
+
+    if (limit &gt;= 0) {
+      return input.slice(begin, begin + limit);
+    } else {
+      if (begin === 0) {
+        return input.slice(limit, input.length);
+      } else {
+        return input.slice(Math.max(0, begin + limit), begin);
+      }
+    }
+  };
+}</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

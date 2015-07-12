@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - src\ng\filter\filters.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>src\ng\filter\filters.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">64.72</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">580</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">59.46</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">3.69</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+/**
+ * @ngdoc filter
+ * @name currency
+ * @kind function
+ *
+ * @description
+ * Formats a number as a currency (ie $1,234.56). When no currency symbol is provided, default
+ * symbol for current locale is used.
+ *
+ * @param {number} amount Input to filter.
+ * @param {string=} symbol Currency symbol or identifier to be displayed.
+ * @param {number=} fractionSize Number of decimal places to round the amount to, defaults to default max fraction size for current locale
+ * @returns {string} Formatted number.
+ *
+ *
+ * @example
+   &lt;example module=&quot;currencyExample&quot;&gt;
+     &lt;file name=&quot;index.html&quot;&gt;
+       &lt;script&gt;
+         angular.module(&#039;currencyExample&#039;, [])
+           .controller(&#039;ExampleController&#039;, [&#039;$scope&#039;, function($scope) {
+             $scope.amount = 1234.56;
+           }]);
+       &lt;/script&gt;
+       &lt;div ng-controller=&quot;ExampleController&quot;&gt;
+         &lt;input type=&quot;number&quot; ng-model=&quot;amount&quot; aria-label=&quot;amount&quot;&gt; &lt;br&gt;
+         default currency symbol ($): &lt;span id=&quot;currency-default&quot;&gt;{{amount | currency}}&lt;/span&gt;&lt;br&gt;
+         custom currency identifier (USD$): &lt;span id=&quot;currency-custom&quot;&gt;{{amount | currency:&quot;USD$&quot;}}&lt;/span&gt;
+         no fractions (0): &lt;span id=&quot;currency-no-fractions&quot;&gt;{{amount | currency:&quot;USD$&quot;:0}}&lt;/span&gt;
+       &lt;/div&gt;
+     &lt;/file&gt;
+     &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+       it(&#039;should init with 1234.56&#039;, function() {
+         expect(element(by.id(&#039;currency-default&#039;)).getText()).toBe(&#039;$1,234.56&#039;);
+         expect(element(by.id(&#039;currency-custom&#039;)).getText()).toBe(&#039;USD$1,234.56&#039;);
+         expect(element(by.id(&#039;currency-no-fractions&#039;)).getText()).toBe(&#039;USD$1,235&#039;);
+       });
+       it(&#039;should update&#039;, function() {
+         if (browser.params.browser == &#039;safari&#039;) {
+           // Safari does not understand the minus key. See
+           // https://github.com/angular/protractor/issues/481
+           return;
+         }
+         element(by.model(&#039;amount&#039;)).clear();
+         element(by.model(&#039;amount&#039;)).sendKeys(&#039;-1234&#039;);
+         expect(element(by.id(&#039;currency-default&#039;)).getText()).toBe(&#039;($1,234.00)&#039;);
+         expect(element(by.id(&#039;currency-custom&#039;)).getText()).toBe(&#039;(USD$1,234.00)&#039;);
+         expect(element(by.id(&#039;currency-no-fractions&#039;)).getText()).toBe(&#039;(USD$1,234)&#039;);
+       });
+     &lt;/file&gt;
+   &lt;/example&gt;
+ */
+currencyFilter.$inject = [&#039;$locale&#039;];
+function currencyFilter($locale) {
+  var formats = $locale.NUMBER_FORMATS;
+  return function(amount, currencySymbol, fractionSize) {
+    if (isUndefined(currencySymbol)) {
+      currencySymbol = formats.CURRENCY_SYM;
+    }
+
+    if (isUndefined(fractionSize)) {
+      fractionSize = formats.PATTERNS[1].maxFrac;
+    }
+
+    // if null or undefined pass it through
+    return (amount == null)
+        ? amount
+        : formatNumber(amount, formats.PATTERNS[1], formats.GROUP_SEP, formats.DECIMAL_SEP, fractionSize).
+            replace(/\u00A4/g, currencySymbol);
+  };
+}
+
+/**
+ * @ngdoc filter
+ * @name number
+ * @kind function
+ *
+ * @description
+ * Formats a number as text.
+ *
+ * If the input is null or undefined, it will just be returned.
+ * If the input is infinite (Infinity/-Infinity) the Infinity symbol &#039;∞&#039; is returned.
+ * If the input is not a number an empty string is returned.
+ *
+ *
+ * @param {number|string} number Number to format.
+ * @param {(number|string)=} fractionSize Number of decimal places to round the number to.
+ * If this is not provided then the fraction size is computed from the current locale&#039;s number
+ * formatting pattern. In the case of the default locale, it will be 3.
+ * @returns {string} Number rounded to decimalPlaces and places a “,” after each third digit.
+ *
+ * @example
+   &lt;example module=&quot;numberFilterExample&quot;&gt;
+     &lt;file name=&quot;index.html&quot;&gt;
+       &lt;script&gt;
+         angular.module(&#039;numberFilterExample&#039;, [])
+           .controller(&#039;ExampleController&#039;, [&#039;$scope&#039;, function($scope) {
+             $scope.val = 1234.56789;
+           }]);
+       &lt;/script&gt;
+       &lt;div ng-controller=&quot;ExampleController&quot;&gt;
+         &lt;label&gt;Enter number: &lt;input ng-model=&#039;val&#039;&gt;&lt;/label&gt;&lt;br&gt;
+         Default formatting: &lt;span id=&#039;number-default&#039;&gt;{{val | number}}&lt;/span&gt;&lt;br&gt;
+         No fractions: &lt;span&gt;{{val | number:0}}&lt;/span&gt;&lt;br&gt;
+         Negative number: &lt;span&gt;{{-val | number:4}}&lt;/span&gt;
+       &lt;/div&gt;
+     &lt;/file&gt;
+     &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+       it(&#039;should format numbers&#039;, function() {
+         expect(element(by.id(&#039;number-default&#039;)).getText()).toBe(&#039;1,234.568&#039;);
+         expect(element(by.binding(&#039;val | number:0&#039;)).getText()).toBe(&#039;1,235&#039;);
+         expect(element(by.binding(&#039;-val | number:4&#039;)).getText()).toBe(&#039;-1,234.5679&#039;);
+       });
+
+       it(&#039;should update&#039;, function() {
+         element(by.model(&#039;val&#039;)).clear();
+         element(by.model(&#039;val&#039;)).sendKeys(&#039;3374.333&#039;);
+         expect(element(by.id(&#039;number-default&#039;)).getText()).toBe(&#039;3,374.333&#039;);
+         expect(element(by.binding(&#039;val | number:0&#039;)).getText()).toBe(&#039;3,374&#039;);
+         expect(element(by.binding(&#039;-val | number:4&#039;)).getText()).toBe(&#039;-3,374.3330&#039;);
+      });
+     &lt;/file&gt;
+   &lt;/example&gt;
+ */
+
+
+numberFilter.$inject = [&#039;$locale&#039;];
+function numberFilter($locale) {
+  var formats = $locale.NUMBER_FORMATS;
+  return function(number, fractionSize) {
+
+    // if null or undefined pass it through
+    return (number == null)
+        ? number
+        : formatNumber(number, formats.PATTERNS[0], formats.GROUP_SEP, formats.DECIMAL_SEP,
+                       fractionSize);
+  };
+}
+
+var DECIMAL_SEP = &#039;.&#039;;
+function formatNumber(number, pattern, groupSep, decimalSep, fractionSize) {
+  if (isObject(number)) return &#039;&#039;;
+
+  var isNegative = number &lt; 0;
+  number = Math.abs(number);
+
+  var isInfinity = number === Infinity;
+  if (!isInfinity &amp;&amp; !isFinite(number)) return &#039;&#039;;
+
+  var numStr = number + &#039;&#039;,
+      formatedText = &#039;&#039;,
+      hasExponent = false,
+      parts = [];
+
+  if (isInfinity) formatedText = &#039;\u221e&#039;;
+
+  if (!isInfinity &amp;&amp; numStr.indexOf(&#039;e&#039;) !== -1) {
+    var match = numStr.match(/([\d\.]+)e(-?)(\d+)/);
+    if (match &amp;&amp; match[2] == &#039;-&#039; &amp;&amp; match[3] &gt; fractionSize + 1) {
+      number = 0;
+    } else {
+      formatedText = numStr;
+      hasExponent = true;
+    }
+  }
+
+  if (!isInfinity &amp;&amp; !hasExponent) {
+    var fractionLen = (numStr.split(DECIMAL_SEP)[1] || &#039;&#039;).length;
+
+    // determine fractionSize if it is not specified
+    if (isUndefined(fractionSize)) {
+      fractionSize = Math.min(Math.max(pattern.minFrac, fractionLen), pattern.maxFrac);
+    }
+
+    // safely round numbers in JS without hitting imprecisions of floating-point arithmetics
+    // inspired by:
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/round
+    number = +(Math.round(+(number.toString() + &#039;e&#039; + fractionSize)).toString() + &#039;e&#039; + -fractionSize);
+
+    var fraction = (&#039;&#039; + number).split(DECIMAL_SEP);
+    var whole = fraction[0];
+    fraction = fraction[1] || &#039;&#039;;
+
+    var i, pos = 0,
+        lgroup = pattern.lgSize,
+        group = pattern.gSize;
+
+    if (whole.length &gt;= (lgroup + group)) {
+      pos = whole.length - lgroup;
+      for (i = 0; i &lt; pos; i++) {
+        if ((pos - i) % group === 0 &amp;&amp; i !== 0) {
+          formatedText += groupSep;
+        }
+        formatedText += whole.charAt(i);
+      }
+    }
+
+    for (i = pos; i &lt; whole.length; i++) {
+      if ((whole.length - i) % lgroup === 0 &amp;&amp; i !== 0) {
+        formatedText += groupSep;
+      }
+      formatedText += whole.charAt(i);
+    }
+
+    // format fraction part.
+    while (fraction.length &lt; fractionSize) {
+      fraction += &#039;0&#039;;
+    }
+
+    if (fractionSize &amp;&amp; fractionSize !== &quot;0&quot;) formatedText += decimalSep + fraction.substr(0, fractionSize);
+  } else {
+    if (fractionSize &gt; 0 &amp;&amp; number &lt; 1) {
+      formatedText = number.toFixed(fractionSize);
+      number = parseFloat(formatedText);
+    }
+  }
+
+  if (number === 0) {
+    isNegative = false;
+  }
+
+  parts.push(isNegative ? pattern.negPre : pattern.posPre,
+             formatedText,
+             isNegative ? pattern.negSuf : pattern.posSuf);
+  return parts.join(&#039;&#039;);
+}
+
+function padNumber(num, digits, trim) {
+  var neg = &#039;&#039;;
+  if (num &lt; 0) {
+    neg =  &#039;-&#039;;
+    num = -num;
+  }
+  num = &#039;&#039; + num;
+  while (num.length &lt; digits) num = &#039;0&#039; + num;
+  if (trim) {
+    num = num.substr(num.length - digits);
+  }
+  return neg + num;
+}
+
+
+function dateGetter(name, size, offset, trim) {
+  offset = offset || 0;
+  return function(date) {
+    var value = date[&#039;get&#039; + name]();
+    if (offset &gt; 0 || value &gt; -offset) {
+      value += offset;
+    }
+    if (value === 0 &amp;&amp; offset == -12) value = 12;
+    return padNumber(value, size, trim);
+  };
+}
+
+function dateStrGetter(name, shortForm) {
+  return function(date, formats) {
+    var value = date[&#039;get&#039; + name]();
+    var get = uppercase(shortForm ? (&#039;SHORT&#039; + name) : name);
+
+    return formats[get][value];
+  };
+}
+
+function timeZoneGetter(date, formats, offset) {
+  var zone = -1 * offset;
+  var paddedZone = (zone &gt;= 0) ? &quot;+&quot; : &quot;&quot;;
+
+  paddedZone += padNumber(Math[zone &gt; 0 ? &#039;floor&#039; : &#039;ceil&#039;](zone / 60), 2) +
+                padNumber(Math.abs(zone % 60), 2);
+
+  return paddedZone;
+}
+
+function getFirstThursdayOfYear(year) {
+    // 0 = index of January
+    var dayOfWeekOnFirst = (new Date(year, 0, 1)).getDay();
+    // 4 = index of Thursday (+1 to account for 1st = 5)
+    // 11 = index of *next* Thursday (+1 account for 1st = 12)
+    return new Date(year, 0, ((dayOfWeekOnFirst &lt;= 4) ? 5 : 12) - dayOfWeekOnFirst);
+}
+
+function getThursdayThisWeek(datetime) {
+    return new Date(datetime.getFullYear(), datetime.getMonth(),
+      // 4 = index of Thursday
+      datetime.getDate() + (4 - datetime.getDay()));
+}
+
+function weekGetter(size) {
+   return function(date) {
+      var firstThurs = getFirstThursdayOfYear(date.getFullYear()),
+         thisThurs = getThursdayThisWeek(date);
+
+      var diff = +thisThurs - +firstThurs,
+         result = 1 + Math.round(diff / 6.048e8); // 6.048e8 ms per week
+
+      return padNumber(result, size);
+   };
+}
+
+function ampmGetter(date, formats) {
+  return date.getHours() &lt; 12 ? formats.AMPMS[0] : formats.AMPMS[1];
+}
+
+function eraGetter(date, formats) {
+  return date.getFullYear() &lt;= 0 ? formats.ERAS[0] : formats.ERAS[1];
+}
+
+function longEraGetter(date, formats) {
+  return date.getFullYear() &lt;= 0 ? formats.ERANAMES[0] : formats.ERANAMES[1];
+}
+
+var DATE_FORMATS = {
+  yyyy: dateGetter(&#039;FullYear&#039;, 4),
+    yy: dateGetter(&#039;FullYear&#039;, 2, 0, true),
+     y: dateGetter(&#039;FullYear&#039;, 1),
+  MMMM: dateStrGetter(&#039;Month&#039;),
+   MMM: dateStrGetter(&#039;Month&#039;, true),
+    MM: dateGetter(&#039;Month&#039;, 2, 1),
+     M: dateGetter(&#039;Month&#039;, 1, 1),
+    dd: dateGetter(&#039;Date&#039;, 2),
+     d: dateGetter(&#039;Date&#039;, 1),
+    HH: dateGetter(&#039;Hours&#039;, 2),
+     H: dateGetter(&#039;Hours&#039;, 1),
+    hh: dateGetter(&#039;Hours&#039;, 2, -12),
+     h: dateGetter(&#039;Hours&#039;, 1, -12),
+    mm: dateGetter(&#039;Minutes&#039;, 2),
+     m: dateGetter(&#039;Minutes&#039;, 1),
+    ss: dateGetter(&#039;Seconds&#039;, 2),
+     s: dateGetter(&#039;Seconds&#039;, 1),
+     // while ISO 8601 requires fractions to be prefixed with `.` or `,`
+     // we can be just safely rely on using `sss` since we currently don&#039;t support single or two digit fractions
+   sss: dateGetter(&#039;Milliseconds&#039;, 3),
+  EEEE: dateStrGetter(&#039;Day&#039;),
+   EEE: dateStrGetter(&#039;Day&#039;, true),
+     a: ampmGetter,
+     Z: timeZoneGetter,
+    ww: weekGetter(2),
+     w: weekGetter(1),
+     G: eraGetter,
+     GG: eraGetter,
+     GGG: eraGetter,
+     GGGG: longEraGetter
+};
+
+var DATE_FORMATS_SPLIT = /((?:[^yMdHhmsaZEwG&#039;]+)|(?:&#039;(?:[^&#039;]|&#039;&#039;)*&#039;)|(?:E+|y+|M+|d+|H+|h+|m+|s+|a|Z|G+|w+))(.*)/,
+    NUMBER_STRING = /^\-?\d+$/;
+
+/**
+ * @ngdoc filter
+ * @name date
+ * @kind function
+ *
+ * @description
+ *   Formats `date` to a string based on the requested `format`.
+ *
+ *   `format` string can be composed of the following elements:
+ *
+ *   * `&#039;yyyy&#039;`: 4 digit representation of year (e.g. AD 1 =&gt; 0001, AD 2010 =&gt; 2010)
+ *   * `&#039;yy&#039;`: 2 digit representation of year, padded (00-99). (e.g. AD 2001 =&gt; 01, AD 2010 =&gt; 10)
+ *   * `&#039;y&#039;`: 1 digit representation of year, e.g. (AD 1 =&gt; 1, AD 199 =&gt; 199)
+ *   * `&#039;MMMM&#039;`: Month in year (January-December)
+ *   * `&#039;MMM&#039;`: Month in year (Jan-Dec)
+ *   * `&#039;MM&#039;`: Month in year, padded (01-12)
+ *   * `&#039;M&#039;`: Month in year (1-12)
+ *   * `&#039;dd&#039;`: Day in month, padded (01-31)
+ *   * `&#039;d&#039;`: Day in month (1-31)
+ *   * `&#039;EEEE&#039;`: Day in Week,(Sunday-Saturday)
+ *   * `&#039;EEE&#039;`: Day in Week, (Sun-Sat)
+ *   * `&#039;HH&#039;`: Hour in day, padded (00-23)
+ *   * `&#039;H&#039;`: Hour in day (0-23)
+ *   * `&#039;hh&#039;`: Hour in AM/PM, padded (01-12)
+ *   * `&#039;h&#039;`: Hour in AM/PM, (1-12)
+ *   * `&#039;mm&#039;`: Minute in hour, padded (00-59)
+ *   * `&#039;m&#039;`: Minute in hour (0-59)
+ *   * `&#039;ss&#039;`: Second in minute, padded (00-59)
+ *   * `&#039;s&#039;`: Second in minute (0-59)
+ *   * `&#039;sss&#039;`: Millisecond in second, padded (000-999)
+ *   * `&#039;a&#039;`: AM/PM marker
+ *   * `&#039;Z&#039;`: 4 digit (+sign) representation of the timezone offset (-1200-+1200)
+ *   * `&#039;ww&#039;`: Week of year, padded (00-53). Week 01 is the week with the first Thursday of the year
+ *   * `&#039;w&#039;`: Week of year (0-53). Week 1 is the week with the first Thursday of the year
+ *   * `&#039;G&#039;`, `&#039;GG&#039;`, `&#039;GGG&#039;`: The abbreviated form of the era string (e.g. &#039;AD&#039;)
+ *   * `&#039;GGGG&#039;`: The long form of the era string (e.g. &#039;Anno Domini&#039;)
+ *
+ *   `format` string can also be one of the following predefined
+ *   {@link guide/i18n localizable formats}:
+ *
+ *   * `&#039;medium&#039;`: equivalent to `&#039;MMM d, y h:mm:ss a&#039;` for en_US locale
+ *     (e.g. Sep 3, 2010 12:05:08 PM)
+ *   * `&#039;short&#039;`: equivalent to `&#039;M/d/yy h:mm a&#039;` for en_US  locale (e.g. 9/3/10 12:05 PM)
+ *   * `&#039;fullDate&#039;`: equivalent to `&#039;EEEE, MMMM d, y&#039;` for en_US  locale
+ *     (e.g. Friday, September 3, 2010)
+ *   * `&#039;longDate&#039;`: equivalent to `&#039;MMMM d, y&#039;` for en_US  locale (e.g. September 3, 2010)
+ *   * `&#039;mediumDate&#039;`: equivalent to `&#039;MMM d, y&#039;` for en_US  locale (e.g. Sep 3, 2010)
+ *   * `&#039;shortDate&#039;`: equivalent to `&#039;M/d/yy&#039;` for en_US locale (e.g. 9/3/10)
+ *   * `&#039;mediumTime&#039;`: equivalent to `&#039;h:mm:ss a&#039;` for en_US locale (e.g. 12:05:08 PM)
+ *   * `&#039;shortTime&#039;`: equivalent to `&#039;h:mm a&#039;` for en_US locale (e.g. 12:05 PM)
+ *
+ *   `format` string can contain literal values. These need to be escaped by surrounding with single quotes (e.g.
+ *   `&quot;h &#039;in the morning&#039;&quot;`). In order to output a single quote, escape it - i.e., two single quotes in a sequence
+ *   (e.g. `&quot;h &#039;o&#039;&#039;clock&#039;&quot;`).
+ *
+ * @param {(Date|number|string)} date Date to format either as Date object, milliseconds (string or
+ *    number) or various ISO 8601 datetime string formats (e.g. yyyy-MM-ddTHH:mm:ss.sssZ and its
+ *    shorter versions like yyyy-MM-ddTHH:mmZ, yyyy-MM-dd or yyyyMMddTHHmmssZ). If no timezone is
+ *    specified in the string input, the time is considered to be in the local timezone.
+ * @param {string=} format Formatting rules (see Description). If not specified,
+ *    `mediumDate` is used.
+ * @param {string=} timezone Timezone to be used for formatting. It understands UTC/GMT and the
+ *    continental US time zone abbreviations, but for general use, use a time zone offset, for
+ *    example, `&#039;+0430&#039;` (4 hours, 30 minutes east of the Greenwich meridian)
+ *    If not specified, the timezone of the browser will be used.
+ * @returns {string} Formatted string or the input if input is not recognized as date/millis.
+ *
+ * @example
+   &lt;example&gt;
+     &lt;file name=&quot;index.html&quot;&gt;
+       &lt;span ng-non-bindable&gt;{{1288323623006 | date:&#039;medium&#039;}}&lt;/span&gt;:
+           &lt;span&gt;{{1288323623006 | date:&#039;medium&#039;}}&lt;/span&gt;&lt;br&gt;
+       &lt;span ng-non-bindable&gt;{{1288323623006 | date:&#039;yyyy-MM-dd HH:mm:ss Z&#039;}}&lt;/span&gt;:
+          &lt;span&gt;{{1288323623006 | date:&#039;yyyy-MM-dd HH:mm:ss Z&#039;}}&lt;/span&gt;&lt;br&gt;
+       &lt;span ng-non-bindable&gt;{{1288323623006 | date:&#039;MM/dd/yyyy @ h:mma&#039;}}&lt;/span&gt;:
+          &lt;span&gt;{{&#039;1288323623006&#039; | date:&#039;MM/dd/yyyy @ h:mma&#039;}}&lt;/span&gt;&lt;br&gt;
+       &lt;span ng-non-bindable&gt;{{1288323623006 | date:&quot;MM/dd/yyyy &#039;at&#039; h:mma&quot;}}&lt;/span&gt;:
+          &lt;span&gt;{{&#039;1288323623006&#039; | date:&quot;MM/dd/yyyy &#039;at&#039; h:mma&quot;}}&lt;/span&gt;&lt;br&gt;
+     &lt;/file&gt;
+     &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+       it(&#039;should format date&#039;, function() {
+         expect(element(by.binding(&quot;1288323623006 | date:&#039;medium&#039;&quot;)).getText()).
+            toMatch(/Oct 2\d, 2010 \d{1,2}:\d{2}:\d{2} (AM|PM)/);
+         expect(element(by.binding(&quot;1288323623006 | date:&#039;yyyy-MM-dd HH:mm:ss Z&#039;&quot;)).getText()).
+            toMatch(/2010\-10\-2\d \d{2}:\d{2}:\d{2} (\-|\+)?\d{4}/);
+         expect(element(by.binding(&quot;&#039;1288323623006&#039; | date:&#039;MM/dd/yyyy @ h:mma&#039;&quot;)).getText()).
+            toMatch(/10\/2\d\/2010 @ \d{1,2}:\d{2}(AM|PM)/);
+         expect(element(by.binding(&quot;&#039;1288323623006&#039; | date:\&quot;MM/dd/yyyy &#039;at&#039; h:mma\&quot;&quot;)).getText()).
+            toMatch(/10\/2\d\/2010 at \d{1,2}:\d{2}(AM|PM)/);
+       });
+     &lt;/file&gt;
+   &lt;/example&gt;
+ */
+dateFilter.$inject = [&#039;$locale&#039;];
+function dateFilter($locale) {
+
+
+  var R_ISO8601_STR = /^(\d{4})-?(\d\d)-?(\d\d)(?:T(\d\d)(?::?(\d\d)(?::?(\d\d)(?:\.(\d+))?)?)?(Z|([+-])(\d\d):?(\d\d))?)?$/;
+                     // 1        2       3         4          5          6          7          8  9     10      11
+  function jsonStringToDate(string) {
+    var match;
+    if (match = string.match(R_ISO8601_STR)) {
+      var date = new Date(0),
+          tzHour = 0,
+          tzMin  = 0,
+          dateSetter = match[8] ? date.setUTCFullYear : date.setFullYear,
+          timeSetter = match[8] ? date.setUTCHours : date.setHours;
+
+      if (match[9]) {
+        tzHour = toInt(match[9] + match[10]);
+        tzMin = toInt(match[9] + match[11]);
+      }
+      dateSetter.call(date, toInt(match[1]), toInt(match[2]) - 1, toInt(match[3]));
+      var h = toInt(match[4] || 0) - tzHour;
+      var m = toInt(match[5] || 0) - tzMin;
+      var s = toInt(match[6] || 0);
+      var ms = Math.round(parseFloat(&#039;0.&#039; + (match[7] || 0)) * 1000);
+      timeSetter.call(date, h, m, s, ms);
+      return date;
+    }
+    return string;
+  }
+
+
+  return function(date, format, timezone) {
+    var text = &#039;&#039;,
+        parts = [],
+        fn, match;
+
+    format = format || &#039;mediumDate&#039;;
+    format = $locale.DATETIME_FORMATS[format] || format;
+    if (isString(date)) {
+      date = NUMBER_STRING.test(date) ? toInt(date) : jsonStringToDate(date);
+    }
+
+    if (isNumber(date)) {
+      date = new Date(date);
+    }
+
+    if (!isDate(date) || !isFinite(date.getTime())) {
+      return date;
+    }
+
+    while (format) {
+      match = DATE_FORMATS_SPLIT.exec(format);
+      if (match) {
+        parts = concat(parts, match, 1);
+        format = parts.pop();
+      } else {
+        parts.push(format);
+        format = null;
+      }
+    }
+
+    var dateTimezoneOffset = date.getTimezoneOffset();
+    if (timezone) {
+      dateTimezoneOffset = timezoneToOffset(timezone, date.getTimezoneOffset());
+      date = convertTimezoneToLocal(date, timezone, true);
+    }
+    forEach(parts, function(value) {
+      fn = DATE_FORMATS[value];
+      text += fn ? fn(date, $locale.DATETIME_FORMATS, dateTimezoneOffset)
+                 : value.replace(/(^&#039;|&#039;$)/g, &#039;&#039;).replace(/&#039;&#039;/g, &quot;&#039;&quot;);
+    });
+
+    return text;
+  };
+}
+
+
+/**
+ * @ngdoc filter
+ * @name json
+ * @kind function
+ *
+ * @description
+ *   Allows you to convert a JavaScript object into JSON string.
+ *
+ *   This filter is mostly useful for debugging. When using the double curly {{value}} notation
+ *   the binding is automatically converted to JSON.
+ *
+ * @param {*} object Any JavaScript object (including arrays and primitive types) to filter.
+ * @param {number=} spacing The number of spaces to use per indentation, defaults to 2.
+ * @returns {string} JSON string.
+ *
+ *
+ * @example
+   &lt;example&gt;
+     &lt;file name=&quot;index.html&quot;&gt;
+       &lt;pre id=&quot;default-spacing&quot;&gt;{{ {&#039;name&#039;:&#039;value&#039;} | json }}&lt;/pre&gt;
+       &lt;pre id=&quot;custom-spacing&quot;&gt;{{ {&#039;name&#039;:&#039;value&#039;} | json:4 }}&lt;/pre&gt;
+     &lt;/file&gt;
+     &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+       it(&#039;should jsonify filtered objects&#039;, function() {
+         expect(element(by.id(&#039;default-spacing&#039;)).getText()).toMatch(/\{\n  &quot;name&quot;: ?&quot;value&quot;\n}/);
+         expect(element(by.id(&#039;custom-spacing&#039;)).getText()).toMatch(/\{\n    &quot;name&quot;: ?&quot;value&quot;\n}/);
+       });
+     &lt;/file&gt;
+   &lt;/example&gt;
+ *
+ */
+function jsonFilter() {
+  return function(object, spacing) {
+    if (isUndefined(spacing)) {
+        spacing = 2;
+    }
+    return toJson(object, spacing);
+  };
+}
+
+
+/**
+ * @ngdoc filter
+ * @name lowercase
+ * @kind function
+ * @description
+ * Converts string to lowercase.
+ * @see angular.lowercase
+ */
+var lowercaseFilter = valueFn(lowercase);
+
+
+/**
+ * @ngdoc filter
+ * @name uppercase
+ * @kind function
+ * @description
+ * Converts string to uppercase.
+ * @see angular.uppercase
+ */
+var uppercaseFilter = valueFn(uppercase);</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

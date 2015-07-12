@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - src\ngSanitize\sanitize.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>src\ngSanitize\sanitize.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">64.01</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">523</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">53.25</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">3.05</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *     Any commits to this file should be reviewed with security in mind.  *
+ *   Changes to this file can potentially create security vulnerabilities. *
+ *          An approval from 2 Core members with history of modifying      *
+ *                         this file is required.                          *
+ *                                                                         *
+ *  Does the change somehow allow for arbitrary javascript to be executed? *
+ *    Or allows for someone to change the prototype of built-in objects?   *
+ *     Or gives undesired access to variables likes document or window?    *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var $sanitizeMinErr = angular.$$minErr(&#039;$sanitize&#039;);
+
+/**
+ * @ngdoc module
+ * @name ngSanitize
+ * @description
+ *
+ * # ngSanitize
+ *
+ * The `ngSanitize` module provides functionality to sanitize HTML.
+ *
+ *
+ * &lt;div doc-module-components=&quot;ngSanitize&quot;&gt;&lt;/div&gt;
+ *
+ * See {@link ngSanitize.$sanitize `$sanitize`} for usage.
+ */
+
+/*
+ * HTML Parser By Misko Hevery (misko@hevery.com)
+ * based on:  HTML Parser By John Resig (ejohn.org)
+ * Original code by Erik Arvidsson, Mozilla Public License
+ * http://erik.eae.net/simplehtmlparser/simplehtmlparser.js
+ *
+ * // Use like so:
+ * htmlParser(htmlString, {
+ *     start: function(tag, attrs, unary) {},
+ *     end: function(tag) {},
+ *     chars: function(text) {},
+ *     comment: function(text) {}
+ * });
+ *
+ */
+
+
+/**
+ * @ngdoc service
+ * @name $sanitize
+ * @kind function
+ *
+ * @description
+ *   The input is sanitized by parsing the HTML into tokens. All safe tokens (from a whitelist) are
+ *   then serialized back to properly escaped html string. This means that no unsafe input can make
+ *   it into the returned string, however, since our parser is more strict than a typical browser
+ *   parser, it&#039;s possible that some obscure input, which would be recognized as valid HTML by a
+ *   browser, won&#039;t make it through the sanitizer. The input may also contain SVG markup.
+ *   The whitelist is configured using the functions `aHrefSanitizationWhitelist` and
+ *   `imgSrcSanitizationWhitelist` of {@link ng.$compileProvider `$compileProvider`}.
+ *
+ * @param {string} html HTML input.
+ * @returns {string} Sanitized HTML.
+ *
+ * @example
+   &lt;example module=&quot;sanitizeExample&quot; deps=&quot;angular-sanitize.js&quot;&gt;
+   &lt;file name=&quot;index.html&quot;&gt;
+     &lt;script&gt;
+         angular.module(&#039;sanitizeExample&#039;, [&#039;ngSanitize&#039;])
+           .controller(&#039;ExampleController&#039;, [&#039;$scope&#039;, &#039;$sce&#039;, function($scope, $sce) {
+             $scope.snippet =
+               &#039;&lt;p style=&quot;color:blue&quot;&gt;an html\n&#039; +
+               &#039;&lt;em onmouseover=&quot;this.textContent=\&#039;PWN3D!\&#039;&quot;&gt;click here&lt;/em&gt;\n&#039; +
+               &#039;snippet&lt;/p&gt;&#039;;
+             $scope.deliberatelyTrustDangerousSnippet = function() {
+               return $sce.trustAsHtml($scope.snippet);
+             };
+           }]);
+     &lt;/script&gt;
+     &lt;div ng-controller=&quot;ExampleController&quot;&gt;
+        Snippet: &lt;textarea ng-model=&quot;snippet&quot; cols=&quot;60&quot; rows=&quot;3&quot;&gt;&lt;/textarea&gt;
+       &lt;table&gt;
+         &lt;tr&gt;
+           &lt;td&gt;Directive&lt;/td&gt;
+           &lt;td&gt;How&lt;/td&gt;
+           &lt;td&gt;Source&lt;/td&gt;
+           &lt;td&gt;Rendered&lt;/td&gt;
+         &lt;/tr&gt;
+         &lt;tr id=&quot;bind-html-with-sanitize&quot;&gt;
+           &lt;td&gt;ng-bind-html&lt;/td&gt;
+           &lt;td&gt;Automatically uses $sanitize&lt;/td&gt;
+           &lt;td&gt;&lt;pre&gt;&amp;lt;div ng-bind-html=&quot;snippet&quot;&amp;gt;&lt;br/&gt;&amp;lt;/div&amp;gt;&lt;/pre&gt;&lt;/td&gt;
+           &lt;td&gt;&lt;div ng-bind-html=&quot;snippet&quot;&gt;&lt;/div&gt;&lt;/td&gt;
+         &lt;/tr&gt;
+         &lt;tr id=&quot;bind-html-with-trust&quot;&gt;
+           &lt;td&gt;ng-bind-html&lt;/td&gt;
+           &lt;td&gt;Bypass $sanitize by explicitly trusting the dangerous value&lt;/td&gt;
+           &lt;td&gt;
+           &lt;pre&gt;&amp;lt;div ng-bind-html=&quot;deliberatelyTrustDangerousSnippet()&quot;&amp;gt;
+&amp;lt;/div&amp;gt;&lt;/pre&gt;
+           &lt;/td&gt;
+           &lt;td&gt;&lt;div ng-bind-html=&quot;deliberatelyTrustDangerousSnippet()&quot;&gt;&lt;/div&gt;&lt;/td&gt;
+         &lt;/tr&gt;
+         &lt;tr id=&quot;bind-default&quot;&gt;
+           &lt;td&gt;ng-bind&lt;/td&gt;
+           &lt;td&gt;Automatically escapes&lt;/td&gt;
+           &lt;td&gt;&lt;pre&gt;&amp;lt;div ng-bind=&quot;snippet&quot;&amp;gt;&lt;br/&gt;&amp;lt;/div&amp;gt;&lt;/pre&gt;&lt;/td&gt;
+           &lt;td&gt;&lt;div ng-bind=&quot;snippet&quot;&gt;&lt;/div&gt;&lt;/td&gt;
+         &lt;/tr&gt;
+       &lt;/table&gt;
+       &lt;/div&gt;
+   &lt;/file&gt;
+   &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+     it(&#039;should sanitize the html snippet by default&#039;, function() {
+       expect(element(by.css(&#039;#bind-html-with-sanitize div&#039;)).getInnerHtml()).
+         toBe(&#039;&lt;p&gt;an html\n&lt;em&gt;click here&lt;/em&gt;\nsnippet&lt;/p&gt;&#039;);
+     });
+
+     it(&#039;should inline raw snippet if bound to a trusted value&#039;, function() {
+       expect(element(by.css(&#039;#bind-html-with-trust div&#039;)).getInnerHtml()).
+         toBe(&quot;&lt;p style=\&quot;color:blue\&quot;&gt;an html\n&quot; +
+              &quot;&lt;em onmouseover=\&quot;this.textContent=&#039;PWN3D!&#039;\&quot;&gt;click here&lt;/em&gt;\n&quot; +
+              &quot;snippet&lt;/p&gt;&quot;);
+     });
+
+     it(&#039;should escape snippet without any filter&#039;, function() {
+       expect(element(by.css(&#039;#bind-default div&#039;)).getInnerHtml()).
+         toBe(&quot;&amp;lt;p style=\&quot;color:blue\&quot;&amp;gt;an html\n&quot; +
+              &quot;&amp;lt;em onmouseover=\&quot;this.textContent=&#039;PWN3D!&#039;\&quot;&amp;gt;click here&amp;lt;/em&amp;gt;\n&quot; +
+              &quot;snippet&amp;lt;/p&amp;gt;&quot;);
+     });
+
+     it(&#039;should update&#039;, function() {
+       element(by.model(&#039;snippet&#039;)).clear();
+       element(by.model(&#039;snippet&#039;)).sendKeys(&#039;new &lt;b onclick=&quot;alert(1)&quot;&gt;text&lt;/b&gt;&#039;);
+       expect(element(by.css(&#039;#bind-html-with-sanitize div&#039;)).getInnerHtml()).
+         toBe(&#039;new &lt;b&gt;text&lt;/b&gt;&#039;);
+       expect(element(by.css(&#039;#bind-html-with-trust div&#039;)).getInnerHtml()).toBe(
+         &#039;new &lt;b onclick=&quot;alert(1)&quot;&gt;text&lt;/b&gt;&#039;);
+       expect(element(by.css(&#039;#bind-default div&#039;)).getInnerHtml()).toBe(
+         &quot;new &amp;lt;b onclick=\&quot;alert(1)\&quot;&amp;gt;text&amp;lt;/b&amp;gt;&quot;);
+     });
+   &lt;/file&gt;
+   &lt;/example&gt;
+ */
+function $SanitizeProvider() {
+  this.$get = [&#039;$$sanitizeUri&#039;, function($$sanitizeUri) {
+    return function(html) {
+      var buf = [];
+      htmlParser(html, htmlSanitizeWriter(buf, function(uri, isImage) {
+        return !/^unsafe/.test($$sanitizeUri(uri, isImage));
+      }));
+      return buf.join(&#039;&#039;);
+    };
+  }];
+}
+
+function sanitizeText(chars) {
+  var buf = [];
+  var writer = htmlSanitizeWriter(buf, angular.noop);
+  writer.chars(chars);
+  return buf.join(&#039;&#039;);
+}
+
+
+// Regular Expressions for parsing tags and attributes
+var START_TAG_REGEXP =
+       /^&lt;((?:[a-zA-Z])[\w:-]*)((?:\s+[\w:-]+(?:\s*=\s*(?:(?:&quot;[^&quot;]*&quot;)|(?:&#039;[^&#039;]*&#039;)|[^&gt;\s]+))?)*)\s*(\/?)\s*(&gt;?)/,
+  END_TAG_REGEXP = /^&lt;\/\s*([\w:-]+)[^&gt;]*&gt;/,
+  ATTR_REGEXP = /([\w:-]+)(?:\s*=\s*(?:(?:&quot;((?:[^&quot;])*)&quot;)|(?:&#039;((?:[^&#039;])*)&#039;)|([^&gt;\s]+)))?/g,
+  BEGIN_TAG_REGEXP = /^&lt;/,
+  BEGING_END_TAGE_REGEXP = /^&lt;\//,
+  COMMENT_REGEXP = /&lt;!--(.*?)--&gt;/g,
+  DOCTYPE_REGEXP = /&lt;!DOCTYPE([^&gt;]*?)&gt;/i,
+  CDATA_REGEXP = /&lt;!\[CDATA\[(.*?)]]&gt;/g,
+  SURROGATE_PAIR_REGEXP = /[\uD800-\uDBFF][\uDC00-\uDFFF]/g,
+  // Match everything outside of normal chars and &quot; (quote character)
+  NON_ALPHANUMERIC_REGEXP = /([^\#-~| |!])/g;
+
+
+// Good source of info about elements and attributes
+// http://dev.w3.org/html5/spec/Overview.html#semantics
+// http://simon.html5.org/html-elements
+
+// Safe Void Elements - HTML5
+// http://dev.w3.org/html5/spec/Overview.html#void-elements
+var voidElements = makeMap(&quot;area,br,col,hr,img,wbr&quot;);
+
+// Elements that you can, intentionally, leave open (and which close themselves)
+// http://dev.w3.org/html5/spec/Overview.html#optional-tags
+var optionalEndTagBlockElements = makeMap(&quot;colgroup,dd,dt,li,p,tbody,td,tfoot,th,thead,tr&quot;),
+    optionalEndTagInlineElements = makeMap(&quot;rp,rt&quot;),
+    optionalEndTagElements = angular.extend({},
+                                            optionalEndTagInlineElements,
+                                            optionalEndTagBlockElements);
+
+// Safe Block Elements - HTML5
+var blockElements = angular.extend({}, optionalEndTagBlockElements, makeMap(&quot;address,article,&quot; +
+        &quot;aside,blockquote,caption,center,del,dir,div,dl,figure,figcaption,footer,h1,h2,h3,h4,h5,&quot; +
+        &quot;h6,header,hgroup,hr,ins,map,menu,nav,ol,pre,script,section,table,ul&quot;));
+
+// Inline Elements - HTML5
+var inlineElements = angular.extend({}, optionalEndTagInlineElements, makeMap(&quot;a,abbr,acronym,b,&quot; +
+        &quot;bdi,bdo,big,br,cite,code,del,dfn,em,font,i,img,ins,kbd,label,map,mark,q,ruby,rp,rt,s,&quot; +
+        &quot;samp,small,span,strike,strong,sub,sup,time,tt,u,var&quot;));
+
+// SVG Elements
+// https://wiki.whatwg.org/wiki/Sanitization_rules#svg_Elements
+// Note: the elements animate,animateColor,animateMotion,animateTransform,set are intentionally omitted.
+// They can potentially allow for arbitrary javascript to be executed. See #11290
+var svgElements = makeMap(&quot;circle,defs,desc,ellipse,font-face,font-face-name,font-face-src,g,glyph,&quot; +
+        &quot;hkern,image,linearGradient,line,marker,metadata,missing-glyph,mpath,path,polygon,polyline,&quot; +
+        &quot;radialGradient,rect,stop,svg,switch,text,title,tspan,use&quot;);
+
+// Special Elements (can contain anything)
+var specialElements = makeMap(&quot;script,style&quot;);
+
+var validElements = angular.extend({},
+                                   voidElements,
+                                   blockElements,
+                                   inlineElements,
+                                   optionalEndTagElements,
+                                   svgElements);
+
+//Attributes that have href and hence need to be sanitized
+var uriAttrs = makeMap(&quot;background,cite,href,longdesc,src,usemap,xlink:href&quot;);
+
+var htmlAttrs = makeMap(&#039;abbr,align,alt,axis,bgcolor,border,cellpadding,cellspacing,class,clear,&#039; +
+    &#039;color,cols,colspan,compact,coords,dir,face,headers,height,hreflang,hspace,&#039; +
+    &#039;ismap,lang,language,nohref,nowrap,rel,rev,rows,rowspan,rules,&#039; +
+    &#039;scope,scrolling,shape,size,span,start,summary,tabindex,target,title,type,&#039; +
+    &#039;valign,value,vspace,width&#039;);
+
+// SVG attributes (without &quot;id&quot; and &quot;name&quot; attributes)
+// https://wiki.whatwg.org/wiki/Sanitization_rules#svg_Attributes
+var svgAttrs = makeMap(&#039;accent-height,accumulate,additive,alphabetic,arabic-form,ascent,&#039; +
+    &#039;baseProfile,bbox,begin,by,calcMode,cap-height,class,color,color-rendering,content,&#039; +
+    &#039;cx,cy,d,dx,dy,descent,display,dur,end,fill,fill-rule,font-family,font-size,font-stretch,&#039; +
+    &#039;font-style,font-variant,font-weight,from,fx,fy,g1,g2,glyph-name,gradientUnits,hanging,&#039; +
+    &#039;height,horiz-adv-x,horiz-origin-x,ideographic,k,keyPoints,keySplines,keyTimes,lang,&#039; +
+    &#039;marker-end,marker-mid,marker-start,markerHeight,markerUnits,markerWidth,mathematical,&#039; +
+    &#039;max,min,offset,opacity,orient,origin,overline-position,overline-thickness,panose-1,&#039; +
+    &#039;path,pathLength,points,preserveAspectRatio,r,refX,refY,repeatCount,repeatDur,&#039; +
+    &#039;requiredExtensions,requiredFeatures,restart,rotate,rx,ry,slope,stemh,stemv,stop-color,&#039; +
+    &#039;stop-opacity,strikethrough-position,strikethrough-thickness,stroke,stroke-dasharray,&#039; +
+    &#039;stroke-dashoffset,stroke-linecap,stroke-linejoin,stroke-miterlimit,stroke-opacity,&#039; +
+    &#039;stroke-width,systemLanguage,target,text-anchor,to,transform,type,u1,u2,underline-position,&#039; +
+    &#039;underline-thickness,unicode,unicode-range,units-per-em,values,version,viewBox,visibility,&#039; +
+    &#039;width,widths,x,x-height,x1,x2,xlink:actuate,xlink:arcrole,xlink:role,xlink:show,xlink:title,&#039; +
+    &#039;xlink:type,xml:base,xml:lang,xml:space,xmlns,xmlns:xlink,y,y1,y2,zoomAndPan&#039;, true);
+
+var validAttrs = angular.extend({},
+                                uriAttrs,
+                                svgAttrs,
+                                htmlAttrs);
+
+function makeMap(str, lowercaseKeys) {
+  var obj = {}, items = str.split(&#039;,&#039;), i;
+  for (i = 0; i &lt; items.length; i++) {
+    obj[lowercaseKeys ? angular.lowercase(items[i]) : items[i]] = true;
+  }
+  return obj;
+}
+
+
+/**
+ * @example
+ * htmlParser(htmlString, {
+ *     start: function(tag, attrs, unary) {},
+ *     end: function(tag) {},
+ *     chars: function(text) {},
+ *     comment: function(text) {}
+ * });
+ *
+ * @param {string} html string
+ * @param {object} handler
+ */
+function htmlParser(html, handler) {
+  if (typeof html !== &#039;string&#039;) {
+    if (html === null || typeof html === &#039;undefined&#039;) {
+      html = &#039;&#039;;
+    } else {
+      html = &#039;&#039; + html;
+    }
+  }
+  var index, chars, match, stack = [], last = html, text;
+  stack.last = function() { return stack[stack.length - 1]; };
+
+  while (html) {
+    text = &#039;&#039;;
+    chars = true;
+
+    // Make sure we&#039;re not in a script or style element
+    if (!stack.last() || !specialElements[stack.last()]) {
+
+      // Comment
+      if (html.indexOf(&quot;&lt;!--&quot;) === 0) {
+        // comments containing -- are not allowed unless they terminate the comment
+        index = html.indexOf(&quot;--&quot;, 4);
+
+        if (index &gt;= 0 &amp;&amp; html.lastIndexOf(&quot;--&gt;&quot;, index) === index) {
+          if (handler.comment) handler.comment(html.substring(4, index));
+          html = html.substring(index + 3);
+          chars = false;
+        }
+      // DOCTYPE
+      } else if (DOCTYPE_REGEXP.test(html)) {
+        match = html.match(DOCTYPE_REGEXP);
+
+        if (match) {
+          html = html.replace(match[0], &#039;&#039;);
+          chars = false;
+        }
+      // end tag
+      } else if (BEGING_END_TAGE_REGEXP.test(html)) {
+        match = html.match(END_TAG_REGEXP);
+
+        if (match) {
+          html = html.substring(match[0].length);
+          match[0].replace(END_TAG_REGEXP, parseEndTag);
+          chars = false;
+        }
+
+      // start tag
+      } else if (BEGIN_TAG_REGEXP.test(html)) {
+        match = html.match(START_TAG_REGEXP);
+
+        if (match) {
+          // We only have a valid start-tag if there is a &#039;&gt;&#039;.
+          if (match[4]) {
+            html = html.substring(match[0].length);
+            match[0].replace(START_TAG_REGEXP, parseStartTag);
+          }
+          chars = false;
+        } else {
+          // no ending tag found --- this piece should be encoded as an entity.
+          text += &#039;&lt;&#039;;
+          html = html.substring(1);
+        }
+      }
+
+      if (chars) {
+        index = html.indexOf(&quot;&lt;&quot;);
+
+        text += index &lt; 0 ? html : html.substring(0, index);
+        html = index &lt; 0 ? &quot;&quot; : html.substring(index);
+
+        if (handler.chars) handler.chars(decodeEntities(text));
+      }
+
+    } else {
+      // IE versions 9 and 10 do not understand the regex &#039;[^]&#039;, so using a workaround with [\W\w].
+      html = html.replace(new RegExp(&quot;([\\W\\w]*)&lt;\\s*\\/\\s*&quot; + stack.last() + &quot;[^&gt;]*&gt;&quot;, &#039;i&#039;),
+        function(all, text) {
+          text = text.replace(COMMENT_REGEXP, &quot;$1&quot;).replace(CDATA_REGEXP, &quot;$1&quot;);
+
+          if (handler.chars) handler.chars(decodeEntities(text));
+
+          return &quot;&quot;;
+      });
+
+      parseEndTag(&quot;&quot;, stack.last());
+    }
+
+    if (html == last) {
+      throw $sanitizeMinErr(&#039;badparse&#039;, &quot;The sanitizer was unable to parse the following block &quot; +
+                                        &quot;of html: {0}&quot;, html);
+    }
+    last = html;
+  }
+
+  // Clean up any remaining tags
+  parseEndTag();
+
+  function parseStartTag(tag, tagName, rest, unary) {
+    tagName = angular.lowercase(tagName);
+    if (blockElements[tagName]) {
+      while (stack.last() &amp;&amp; inlineElements[stack.last()]) {
+        parseEndTag(&quot;&quot;, stack.last());
+      }
+    }
+
+    if (optionalEndTagElements[tagName] &amp;&amp; stack.last() == tagName) {
+      parseEndTag(&quot;&quot;, tagName);
+    }
+
+    unary = voidElements[tagName] || !!unary;
+
+    if (!unary) {
+      stack.push(tagName);
+    }
+
+    var attrs = {};
+
+    rest.replace(ATTR_REGEXP,
+      function(match, name, doubleQuotedValue, singleQuotedValue, unquotedValue) {
+        var value = doubleQuotedValue
+          || singleQuotedValue
+          || unquotedValue
+          || &#039;&#039;;
+
+        attrs[name] = decodeEntities(value);
+    });
+    if (handler.start) handler.start(tagName, attrs, unary);
+  }
+
+  function parseEndTag(tag, tagName) {
+    var pos = 0, i;
+    tagName = angular.lowercase(tagName);
+    if (tagName) {
+      // Find the closest opened tag of the same type
+      for (pos = stack.length - 1; pos &gt;= 0; pos--) {
+        if (stack[pos] == tagName) break;
+      }
+    }
+
+    if (pos &gt;= 0) {
+      // Close all the open elements, up the stack
+      for (i = stack.length - 1; i &gt;= pos; i--)
+        if (handler.end) handler.end(stack[i]);
+
+      // Remove the open elements from the stack
+      stack.length = pos;
+    }
+  }
+}
+
+var hiddenPre=document.createElement(&quot;pre&quot;);
+/**
+ * decodes all entities into regular string
+ * @param value
+ * @returns {string} A string with decoded entities.
+ */
+function decodeEntities(value) {
+  if (!value) { return &#039;&#039;; }
+
+  hiddenPre.innerHTML = value.replace(/&lt;/g,&quot;&amp;lt;&quot;);
+  // innerText depends on styling as it doesn&#039;t display hidden elements.
+  // Therefore, it&#039;s better to use textContent not to cause unnecessary reflows.
+  return hiddenPre.textContent;
+}
+
+/**
+ * Escapes all potentially dangerous characters, so that the
+ * resulting string can be safely inserted into attribute or
+ * element text.
+ * @param value
+ * @returns {string} escaped text
+ */
+function encodeEntities(value) {
+  return value.
+    replace(/&amp;/g, &#039;&amp;amp;&#039;).
+    replace(SURROGATE_PAIR_REGEXP, function(value) {
+      var hi = value.charCodeAt(0);
+      var low = value.charCodeAt(1);
+      return &#039;&amp;#&#039; + (((hi - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000) + &#039;;&#039;;
+    }).
+    replace(NON_ALPHANUMERIC_REGEXP, function(value) {
+      return &#039;&amp;#&#039; + value.charCodeAt(0) + &#039;;&#039;;
+    }).
+    replace(/&lt;/g, &#039;&amp;lt;&#039;).
+    replace(/&gt;/g, &#039;&amp;gt;&#039;);
+}
+
+/**
+ * create an HTML/XML writer which writes to buffer
+ * @param {Array} buf use buf.jain(&#039;&#039;) to get out sanitized html string
+ * @returns {object} in the form of {
+ *     start: function(tag, attrs, unary) {},
+ *     end: function(tag) {},
+ *     chars: function(text) {},
+ *     comment: function(text) {}
+ * }
+ */
+function htmlSanitizeWriter(buf, uriValidator) {
+  var ignore = false;
+  var out = angular.bind(buf, buf.push);
+  return {
+    start: function(tag, attrs, unary) {
+      tag = angular.lowercase(tag);
+      if (!ignore &amp;&amp; specialElements[tag]) {
+        ignore = tag;
+      }
+      if (!ignore &amp;&amp; validElements[tag] === true) {
+        out(&#039;&lt;&#039;);
+        out(tag);
+        angular.forEach(attrs, function(value, key) {
+          var lkey=angular.lowercase(key);
+          var isImage = (tag === &#039;img&#039; &amp;&amp; lkey === &#039;src&#039;) || (lkey === &#039;background&#039;);
+          if (validAttrs[lkey] === true &amp;&amp;
+            (uriAttrs[lkey] !== true || uriValidator(value, isImage))) {
+            out(&#039; &#039;);
+            out(key);
+            out(&#039;=&quot;&#039;);
+            out(encodeEntities(value));
+            out(&#039;&quot;&#039;);
+          }
+        });
+        out(unary ? &#039;/&gt;&#039; : &#039;&gt;&#039;);
+      }
+    },
+    end: function(tag) {
+        tag = angular.lowercase(tag);
+        if (!ignore &amp;&amp; validElements[tag] === true) {
+          out(&#039;&lt;/&#039;);
+          out(tag);
+          out(&#039;&gt;&#039;);
+        }
+        if (tag == ignore) {
+          ignore = false;
+        }
+      },
+    chars: function(chars) {
+        if (!ignore) {
+          out(encodeEntities(chars));
+        }
+      }
+  };
+}
+
+
+// define ngSanitize module and register $sanitize service
+angular.module(&#039;ngSanitize&#039;, []).provider(&#039;$sanitize&#039;, $SanitizeProvider);</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

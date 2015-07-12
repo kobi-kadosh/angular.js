@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - src\ng\directive\ngClass.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>src\ng\directive\ngClass.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">72.10</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">396</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">35.26</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">0.92</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+function classDirective(name, selector) {
+  name = &#039;ngClass&#039; + name;
+  return [&#039;$animate&#039;, function($animate) {
+    return {
+      restrict: &#039;AC&#039;,
+      link: function(scope, element, attr) {
+        var oldVal;
+
+        scope.$watch(attr[name], ngClassWatchAction, true);
+
+        attr.$observe(&#039;class&#039;, function(value) {
+          ngClassWatchAction(scope.$eval(attr[name]));
+        });
+
+
+        if (name !== &#039;ngClass&#039;) {
+          scope.$watch(&#039;$index&#039;, function($index, old$index) {
+            // jshint bitwise: false
+            var mod = $index &amp; 1;
+            if (mod !== (old$index &amp; 1)) {
+              var classes = arrayClasses(scope.$eval(attr[name]));
+              mod === selector ?
+                addClasses(classes) :
+                removeClasses(classes);
+            }
+          });
+        }
+
+        function addClasses(classes) {
+          var newClasses = digestClassCounts(classes, 1);
+          attr.$addClass(newClasses);
+        }
+
+        function removeClasses(classes) {
+          var newClasses = digestClassCounts(classes, -1);
+          attr.$removeClass(newClasses);
+        }
+
+        function digestClassCounts(classes, count) {
+          // Use createMap() to prevent class assumptions involving property
+          // names in Object.prototype
+          var classCounts = element.data(&#039;$classCounts&#039;) || createMap();
+          var classesToUpdate = [];
+          forEach(classes, function(className) {
+            if (count &gt; 0 || classCounts[className]) {
+              classCounts[className] = (classCounts[className] || 0) + count;
+              if (classCounts[className] === +(count &gt; 0)) {
+                classesToUpdate.push(className);
+              }
+            }
+          });
+          element.data(&#039;$classCounts&#039;, classCounts);
+          return classesToUpdate.join(&#039; &#039;);
+        }
+
+        function updateClasses(oldClasses, newClasses) {
+          var toAdd = arrayDifference(newClasses, oldClasses);
+          var toRemove = arrayDifference(oldClasses, newClasses);
+          toAdd = digestClassCounts(toAdd, 1);
+          toRemove = digestClassCounts(toRemove, -1);
+          if (toAdd &amp;&amp; toAdd.length) {
+            $animate.addClass(element, toAdd);
+          }
+          if (toRemove &amp;&amp; toRemove.length) {
+            $animate.removeClass(element, toRemove);
+          }
+        }
+
+        function ngClassWatchAction(newVal) {
+          if (selector === true || scope.$index % 2 === selector) {
+            var newClasses = arrayClasses(newVal || []);
+            if (!oldVal) {
+              addClasses(newClasses);
+            } else if (!equals(newVal,oldVal)) {
+              var oldClasses = arrayClasses(oldVal);
+              updateClasses(oldClasses, newClasses);
+            }
+          }
+          oldVal = shallowCopy(newVal);
+        }
+      }
+    };
+
+    function arrayDifference(tokens1, tokens2) {
+      var values = [];
+
+      outer:
+      for (var i = 0; i &lt; tokens1.length; i++) {
+        var token = tokens1[i];
+        for (var j = 0; j &lt; tokens2.length; j++) {
+          if (token == tokens2[j]) continue outer;
+        }
+        values.push(token);
+      }
+      return values;
+    }
+
+    function arrayClasses(classVal) {
+      var classes = [];
+      if (isArray(classVal)) {
+        forEach(classVal, function(v) {
+          classes = classes.concat(arrayClasses(v));
+        });
+        return classes;
+      } else if (isString(classVal)) {
+        return classVal.split(&#039; &#039;);
+      } else if (isObject(classVal)) {
+        forEach(classVal, function(v, k) {
+          if (v) {
+            classes = classes.concat(k.split(&#039; &#039;));
+          }
+        });
+        return classes;
+      }
+      return classVal;
+    }
+  }];
+}
+
+/**
+ * @ngdoc directive
+ * @name ngClass
+ * @restrict AC
+ *
+ * @description
+ * The `ngClass` directive allows you to dynamically set CSS classes on an HTML element by databinding
+ * an expression that represents all classes to be added.
+ *
+ * The directive operates in three different ways, depending on which of three types the expression
+ * evaluates to:
+ *
+ * 1. If the expression evaluates to a string, the string should be one or more space-delimited class
+ * names.
+ *
+ * 2. If the expression evaluates to an object, then for each key-value pair of the
+ * object with a truthy value the corresponding key is used as a class name.
+ *
+ * 3. If the expression evaluates to an array, each element of the array should either be a string as in
+ * type 1 or an object as in type 2. This means that you can mix strings and objects together in an array
+ * to give you more control over what CSS classes appear. See the code below for an example of this.
+ *
+ *
+ * The directive won&#039;t add duplicate classes if a particular class was already set.
+ *
+ * When the expression changes, the previously added classes are removed and only then are the
+ * new classes added.
+ *
+ * @animations
+ * **add** - happens just before the class is applied to the elements
+ *
+ * **remove** - happens just before the class is removed from the element
+ *
+ * @element ANY
+ * @param {expression} ngClass {@link guide/expression Expression} to eval. The result
+ *   of the evaluation can be a string representing space delimited class
+ *   names, an array, or a map of class names to boolean values. In the case of a map, the
+ *   names of the properties whose values are truthy will be added as css classes to the
+ *   element.
+ *
+ * @example Example that demonstrates basic bindings via ngClass directive.
+   &lt;example&gt;
+     &lt;file name=&quot;index.html&quot;&gt;
+       &lt;p ng-class=&quot;{strike: deleted, bold: important, &#039;has-error&#039;: error}&quot;&gt;Map Syntax Example&lt;/p&gt;
+       &lt;label&gt;
+          &lt;input type=&quot;checkbox&quot; ng-model=&quot;deleted&quot;&gt;
+          deleted (apply &quot;strike&quot; class)
+       &lt;/label&gt;&lt;br&gt;
+       &lt;label&gt;
+          &lt;input type=&quot;checkbox&quot; ng-model=&quot;important&quot;&gt;
+          important (apply &quot;bold&quot; class)
+       &lt;/label&gt;&lt;br&gt;
+       &lt;label&gt;
+          &lt;input type=&quot;checkbox&quot; ng-model=&quot;error&quot;&gt;
+          error (apply &quot;has-error&quot; class)
+       &lt;/label&gt;
+       &lt;hr&gt;
+       &lt;p ng-class=&quot;style&quot;&gt;Using String Syntax&lt;/p&gt;
+       &lt;input type=&quot;text&quot; ng-model=&quot;style&quot;
+              placeholder=&quot;Type: bold strike red&quot; aria-label=&quot;Type: bold strike red&quot;&gt;
+       &lt;hr&gt;
+       &lt;p ng-class=&quot;[style1, style2, style3]&quot;&gt;Using Array Syntax&lt;/p&gt;
+       &lt;input ng-model=&quot;style1&quot;
+              placeholder=&quot;Type: bold, strike or red&quot; aria-label=&quot;Type: bold, strike or red&quot;&gt;&lt;br&gt;
+       &lt;input ng-model=&quot;style2&quot;
+              placeholder=&quot;Type: bold, strike or red&quot; aria-label=&quot;Type: bold, strike or red 2&quot;&gt;&lt;br&gt;
+       &lt;input ng-model=&quot;style3&quot;
+              placeholder=&quot;Type: bold, strike or red&quot; aria-label=&quot;Type: bold, strike or red 3&quot;&gt;&lt;br&gt;
+       &lt;hr&gt;
+       &lt;p ng-class=&quot;[style4, {orange: warning}]&quot;&gt;Using Array and Map Syntax&lt;/p&gt;
+       &lt;input ng-model=&quot;style4&quot; placeholder=&quot;Type: bold, strike&quot; aria-label=&quot;Type: bold, strike&quot;&gt;&lt;br&gt;
+       &lt;label&gt;&lt;input type=&quot;checkbox&quot; ng-model=&quot;warning&quot;&gt; warning (apply &quot;orange&quot; class)&lt;/label&gt;
+     &lt;/file&gt;
+     &lt;file name=&quot;style.css&quot;&gt;
+       .strike {
+           text-decoration: line-through;
+       }
+       .bold {
+           font-weight: bold;
+       }
+       .red {
+           color: red;
+       }
+       .has-error {
+           color: red;
+           background-color: yellow;
+       }
+       .orange {
+           color: orange;
+       }
+     &lt;/file&gt;
+     &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+       var ps = element.all(by.css(&#039;p&#039;));
+
+       it(&#039;should let you toggle the class&#039;, function() {
+
+         expect(ps.first().getAttribute(&#039;class&#039;)).not.toMatch(/bold/);
+         expect(ps.first().getAttribute(&#039;class&#039;)).not.toMatch(/has-error/);
+
+         element(by.model(&#039;important&#039;)).click();
+         expect(ps.first().getAttribute(&#039;class&#039;)).toMatch(/bold/);
+
+         element(by.model(&#039;error&#039;)).click();
+         expect(ps.first().getAttribute(&#039;class&#039;)).toMatch(/has-error/);
+       });
+
+       it(&#039;should let you toggle string example&#039;, function() {
+         expect(ps.get(1).getAttribute(&#039;class&#039;)).toBe(&#039;&#039;);
+         element(by.model(&#039;style&#039;)).clear();
+         element(by.model(&#039;style&#039;)).sendKeys(&#039;red&#039;);
+         expect(ps.get(1).getAttribute(&#039;class&#039;)).toBe(&#039;red&#039;);
+       });
+
+       it(&#039;array example should have 3 classes&#039;, function() {
+         expect(ps.get(2).getAttribute(&#039;class&#039;)).toBe(&#039;&#039;);
+         element(by.model(&#039;style1&#039;)).sendKeys(&#039;bold&#039;);
+         element(by.model(&#039;style2&#039;)).sendKeys(&#039;strike&#039;);
+         element(by.model(&#039;style3&#039;)).sendKeys(&#039;red&#039;);
+         expect(ps.get(2).getAttribute(&#039;class&#039;)).toBe(&#039;bold strike red&#039;);
+       });
+
+       it(&#039;array with map example should have 2 classes&#039;, function() {
+         expect(ps.last().getAttribute(&#039;class&#039;)).toBe(&#039;&#039;);
+         element(by.model(&#039;style4&#039;)).sendKeys(&#039;bold&#039;);
+         element(by.model(&#039;warning&#039;)).click();
+         expect(ps.last().getAttribute(&#039;class&#039;)).toBe(&#039;bold orange&#039;);
+       });
+     &lt;/file&gt;
+   &lt;/example&gt;
+
+   ## Animations
+
+   The example below demonstrates how to perform animations using ngClass.
+
+   &lt;example module=&quot;ngAnimate&quot; deps=&quot;angular-animate.js&quot; animations=&quot;true&quot;&gt;
+     &lt;file name=&quot;index.html&quot;&gt;
+      &lt;input id=&quot;setbtn&quot; type=&quot;button&quot; value=&quot;set&quot; ng-click=&quot;myVar=&#039;my-class&#039;&quot;&gt;
+      &lt;input id=&quot;clearbtn&quot; type=&quot;button&quot; value=&quot;clear&quot; ng-click=&quot;myVar=&#039;&#039;&quot;&gt;
+      &lt;br&gt;
+      &lt;span class=&quot;base-class&quot; ng-class=&quot;myVar&quot;&gt;Sample Text&lt;/span&gt;
+     &lt;/file&gt;
+     &lt;file name=&quot;style.css&quot;&gt;
+       .base-class {
+         -webkit-transition:all cubic-bezier(0.250, 0.460, 0.450, 0.940) 0.5s;
+         transition:all cubic-bezier(0.250, 0.460, 0.450, 0.940) 0.5s;
+       }
+
+       .base-class.my-class {
+         color: red;
+         font-size:3em;
+       }
+     &lt;/file&gt;
+     &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+       it(&#039;should check ng-class&#039;, function() {
+         expect(element(by.css(&#039;.base-class&#039;)).getAttribute(&#039;class&#039;)).not.
+           toMatch(/my-class/);
+
+         element(by.id(&#039;setbtn&#039;)).click();
+
+         expect(element(by.css(&#039;.base-class&#039;)).getAttribute(&#039;class&#039;)).
+           toMatch(/my-class/);
+
+         element(by.id(&#039;clearbtn&#039;)).click();
+
+         expect(element(by.css(&#039;.base-class&#039;)).getAttribute(&#039;class&#039;)).not.
+           toMatch(/my-class/);
+       });
+     &lt;/file&gt;
+   &lt;/example&gt;
+
+
+   ## ngClass and pre-existing CSS3 Transitions/Animations
+   The ngClass directive still supports CSS3 Transitions/Animations even if they do not follow the ngAnimate CSS naming structure.
+   Upon animation ngAnimate will apply supplementary CSS classes to track the start and end of an animation, but this will not hinder
+   any pre-existing CSS transitions already on the element. To get an idea of what happens during a class-based animation, be sure
+   to view the step by step details of {@link $animate#addClass $animate.addClass} and
+   {@link $animate#removeClass $animate.removeClass}.
+ */
+var ngClassDirective = classDirective(&#039;&#039;, true);
+
+/**
+ * @ngdoc directive
+ * @name ngClassOdd
+ * @restrict AC
+ *
+ * @description
+ * The `ngClassOdd` and `ngClassEven` directives work exactly as
+ * {@link ng.directive:ngClass ngClass}, except they work in
+ * conjunction with `ngRepeat` and take effect only on odd (even) rows.
+ *
+ * This directive can be applied only within the scope of an
+ * {@link ng.directive:ngRepeat ngRepeat}.
+ *
+ * @element ANY
+ * @param {expression} ngClassOdd {@link guide/expression Expression} to eval. The result
+ *   of the evaluation can be a string representing space delimited class names or an array.
+ *
+ * @example
+   &lt;example&gt;
+     &lt;file name=&quot;index.html&quot;&gt;
+        &lt;ol ng-init=&quot;names=[&#039;John&#039;, &#039;Mary&#039;, &#039;Cate&#039;, &#039;Suz&#039;]&quot;&gt;
+          &lt;li ng-repeat=&quot;name in names&quot;&gt;
+           &lt;span ng-class-odd=&quot;&#039;odd&#039;&quot; ng-class-even=&quot;&#039;even&#039;&quot;&gt;
+             {{name}}
+           &lt;/span&gt;
+          &lt;/li&gt;
+        &lt;/ol&gt;
+     &lt;/file&gt;
+     &lt;file name=&quot;style.css&quot;&gt;
+       .odd {
+         color: red;
+       }
+       .even {
+         color: blue;
+       }
+     &lt;/file&gt;
+     &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+       it(&#039;should check ng-class-odd and ng-class-even&#039;, function() {
+         expect(element(by.repeater(&#039;name in names&#039;).row(0).column(&#039;name&#039;)).getAttribute(&#039;class&#039;)).
+           toMatch(/odd/);
+         expect(element(by.repeater(&#039;name in names&#039;).row(1).column(&#039;name&#039;)).getAttribute(&#039;class&#039;)).
+           toMatch(/even/);
+       });
+     &lt;/file&gt;
+   &lt;/example&gt;
+ */
+var ngClassOddDirective = classDirective(&#039;Odd&#039;, 0);
+
+/**
+ * @ngdoc directive
+ * @name ngClassEven
+ * @restrict AC
+ *
+ * @description
+ * The `ngClassOdd` and `ngClassEven` directives work exactly as
+ * {@link ng.directive:ngClass ngClass}, except they work in
+ * conjunction with `ngRepeat` and take effect only on odd (even) rows.
+ *
+ * This directive can be applied only within the scope of an
+ * {@link ng.directive:ngRepeat ngRepeat}.
+ *
+ * @element ANY
+ * @param {expression} ngClassEven {@link guide/expression Expression} to eval. The
+ *   result of the evaluation can be a string representing space delimited class names or an array.
+ *
+ * @example
+   &lt;example&gt;
+     &lt;file name=&quot;index.html&quot;&gt;
+        &lt;ol ng-init=&quot;names=[&#039;John&#039;, &#039;Mary&#039;, &#039;Cate&#039;, &#039;Suz&#039;]&quot;&gt;
+          &lt;li ng-repeat=&quot;name in names&quot;&gt;
+           &lt;span ng-class-odd=&quot;&#039;odd&#039;&quot; ng-class-even=&quot;&#039;even&#039;&quot;&gt;
+             {{name}} &amp;nbsp; &amp;nbsp; &amp;nbsp;
+           &lt;/span&gt;
+          &lt;/li&gt;
+        &lt;/ol&gt;
+     &lt;/file&gt;
+     &lt;file name=&quot;style.css&quot;&gt;
+       .odd {
+         color: red;
+       }
+       .even {
+         color: blue;
+       }
+     &lt;/file&gt;
+     &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+       it(&#039;should check ng-class-odd and ng-class-even&#039;, function() {
+         expect(element(by.repeater(&#039;name in names&#039;).row(0).column(&#039;name&#039;)).getAttribute(&#039;class&#039;)).
+           toMatch(/odd/);
+         expect(element(by.repeater(&#039;name in names&#039;).row(1).column(&#039;name&#039;)).getAttribute(&#039;class&#039;)).
+           toMatch(/even/);
+       });
+     &lt;/file&gt;
+   &lt;/example&gt;
+ */
+var ngClassEvenDirective = classDirective(&#039;Even&#039;, 1);</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - src\ng\directive\ngController.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>src\ng\directive\ngController.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">75.97</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">236</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">4.14</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">0.03</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+/**
+ * @ngdoc directive
+ * @name ngController
+ *
+ * @description
+ * The `ngController` directive attaches a controller class to the view. This is a key aspect of how angular
+ * supports the principles behind the Model-View-Controller design pattern.
+ *
+ * MVC components in angular:
+ *
+ * * Model — Models are the properties of a scope; scopes are attached to the DOM where scope properties
+ *   are accessed through bindings.
+ * * View — The template (HTML with data bindings) that is rendered into the View.
+ * * Controller — The `ngController` directive specifies a Controller class; the class contains business
+ *   logic behind the application to decorate the scope with functions and values
+ *
+ * Note that you can also attach controllers to the DOM by declaring it in a route definition
+ * via the {@link ngRoute.$route $route} service. A common mistake is to declare the controller
+ * again using `ng-controller` in the template itself.  This will cause the controller to be attached
+ * and executed twice.
+ *
+ * @element ANY
+ * @scope
+ * @priority 500
+ * @param {expression} ngController Name of a constructor function registered with the current
+ * {@link ng.$controllerProvider $controllerProvider} or an {@link guide/expression expression}
+ * that on the current scope evaluates to a constructor function.
+ *
+ * The controller instance can be published into a scope property by specifying
+ * `ng-controller=&quot;as propertyName&quot;`.
+ *
+ * If the current `$controllerProvider` is configured to use globals (via
+ * {@link ng.$controllerProvider#allowGlobals `$controllerProvider.allowGlobals()` }), this may
+ * also be the name of a globally accessible constructor function (not recommended).
+ *
+ * @example
+ * Here is a simple form for editing user contact information. Adding, removing, clearing, and
+ * greeting are methods declared on the controller (see source tab). These methods can
+ * easily be called from the angular markup. Any changes to the data are automatically reflected
+ * in the View without the need for a manual update.
+ *
+ * Two different declaration styles are included below:
+ *
+ * * one binds methods and properties directly onto the controller using `this`:
+ * `ng-controller=&quot;SettingsController1 as settings&quot;`
+ * * one injects `$scope` into the controller:
+ * `ng-controller=&quot;SettingsController2&quot;`
+ *
+ * The second option is more common in the Angular community, and is generally used in boilerplates
+ * and in this guide. However, there are advantages to binding properties directly to the controller
+ * and avoiding scope.
+ *
+ * * Using `controller as` makes it obvious which controller you are accessing in the template when
+ * multiple controllers apply to an element.
+ * * If you are writing your controllers as classes you have easier access to the properties and
+ * methods, which will appear on the scope, from inside the controller code.
+ * * Since there is always a `.` in the bindings, you don&#039;t have to worry about prototypal
+ * inheritance masking primitives.
+ *
+ * This example demonstrates the `controller as` syntax.
+ *
+ * &lt;example name=&quot;ngControllerAs&quot; module=&quot;controllerAsExample&quot;&gt;
+ *   &lt;file name=&quot;index.html&quot;&gt;
+ *    &lt;div id=&quot;ctrl-as-exmpl&quot; ng-controller=&quot;SettingsController1 as settings&quot;&gt;
+ *      &lt;label&gt;Name: &lt;input type=&quot;text&quot; ng-model=&quot;settings.name&quot;/&gt;&lt;/label&gt;
+ *      &lt;button ng-click=&quot;settings.greet()&quot;&gt;greet&lt;/button&gt;&lt;br/&gt;
+ *      Contact:
+ *      &lt;ul&gt;
+ *        &lt;li ng-repeat=&quot;contact in settings.contacts&quot;&gt;
+ *          &lt;select ng-model=&quot;contact.type&quot; aria-label=&quot;Contact method&quot; id=&quot;select_{{$index}}&quot;&gt;
+ *             &lt;option&gt;phone&lt;/option&gt;
+ *             &lt;option&gt;email&lt;/option&gt;
+ *          &lt;/select&gt;
+ *          &lt;input type=&quot;text&quot; ng-model=&quot;contact.value&quot; aria-labelledby=&quot;select_{{$index}}&quot; /&gt;
+ *          &lt;button ng-click=&quot;settings.clearContact(contact)&quot;&gt;clear&lt;/button&gt;
+ *          &lt;button ng-click=&quot;settings.removeContact(contact)&quot; aria-label=&quot;Remove&quot;&gt;X&lt;/button&gt;
+ *        &lt;/li&gt;
+ *        &lt;li&gt;&lt;button ng-click=&quot;settings.addContact()&quot;&gt;add&lt;/button&gt;&lt;/li&gt;
+ *     &lt;/ul&gt;
+ *    &lt;/div&gt;
+ *   &lt;/file&gt;
+ *   &lt;file name=&quot;app.js&quot;&gt;
+ *    angular.module(&#039;controllerAsExample&#039;, [])
+ *      .controller(&#039;SettingsController1&#039;, SettingsController1);
+ *
+ *    function SettingsController1() {
+ *      this.name = &quot;John Smith&quot;;
+ *      this.contacts = [
+ *        {type: &#039;phone&#039;, value: &#039;408 555 1212&#039;},
+ *        {type: &#039;email&#039;, value: &#039;john.smith@example.org&#039;} ];
+ *    }
+ *
+ *    SettingsController1.prototype.greet = function() {
+ *      alert(this.name);
+ *    };
+ *
+ *    SettingsController1.prototype.addContact = function() {
+ *      this.contacts.push({type: &#039;email&#039;, value: &#039;yourname@example.org&#039;});
+ *    };
+ *
+ *    SettingsController1.prototype.removeContact = function(contactToRemove) {
+ *     var index = this.contacts.indexOf(contactToRemove);
+ *      this.contacts.splice(index, 1);
+ *    };
+ *
+ *    SettingsController1.prototype.clearContact = function(contact) {
+ *      contact.type = &#039;phone&#039;;
+ *      contact.value = &#039;&#039;;
+ *    };
+ *   &lt;/file&gt;
+ *   &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+ *     it(&#039;should check controller as&#039;, function() {
+ *       var container = element(by.id(&#039;ctrl-as-exmpl&#039;));
+ *         expect(container.element(by.model(&#039;settings.name&#039;))
+ *           .getAttribute(&#039;value&#039;)).toBe(&#039;John Smith&#039;);
+ *
+ *       var firstRepeat =
+ *           container.element(by.repeater(&#039;contact in settings.contacts&#039;).row(0));
+ *       var secondRepeat =
+ *           container.element(by.repeater(&#039;contact in settings.contacts&#039;).row(1));
+ *
+ *       expect(firstRepeat.element(by.model(&#039;contact.value&#039;)).getAttribute(&#039;value&#039;))
+ *           .toBe(&#039;408 555 1212&#039;);
+ *
+ *       expect(secondRepeat.element(by.model(&#039;contact.value&#039;)).getAttribute(&#039;value&#039;))
+ *           .toBe(&#039;john.smith@example.org&#039;);
+ *
+ *       firstRepeat.element(by.buttonText(&#039;clear&#039;)).click();
+ *
+ *       expect(firstRepeat.element(by.model(&#039;contact.value&#039;)).getAttribute(&#039;value&#039;))
+ *           .toBe(&#039;&#039;);
+ *
+ *       container.element(by.buttonText(&#039;add&#039;)).click();
+ *
+ *       expect(container.element(by.repeater(&#039;contact in settings.contacts&#039;).row(2))
+ *           .element(by.model(&#039;contact.value&#039;))
+ *           .getAttribute(&#039;value&#039;))
+ *           .toBe(&#039;yourname@example.org&#039;);
+ *     });
+ *   &lt;/file&gt;
+ * &lt;/example&gt;
+ *
+ * This example demonstrates the &quot;attach to `$scope`&quot; style of controller.
+ *
+ * &lt;example name=&quot;ngController&quot; module=&quot;controllerExample&quot;&gt;
+ *  &lt;file name=&quot;index.html&quot;&gt;
+ *   &lt;div id=&quot;ctrl-exmpl&quot; ng-controller=&quot;SettingsController2&quot;&gt;
+ *     &lt;label&gt;Name: &lt;input type=&quot;text&quot; ng-model=&quot;name&quot;/&gt;&lt;/label&gt;
+ *     &lt;button ng-click=&quot;greet()&quot;&gt;greet&lt;/button&gt;&lt;br/&gt;
+ *     Contact:
+ *     &lt;ul&gt;
+ *       &lt;li ng-repeat=&quot;contact in contacts&quot;&gt;
+ *         &lt;select ng-model=&quot;contact.type&quot; id=&quot;select_{{$index}}&quot;&gt;
+ *            &lt;option&gt;phone&lt;/option&gt;
+ *            &lt;option&gt;email&lt;/option&gt;
+ *         &lt;/select&gt;
+ *         &lt;input type=&quot;text&quot; ng-model=&quot;contact.value&quot; aria-labelledby=&quot;select_{{$index}}&quot; /&gt;
+ *         &lt;button ng-click=&quot;clearContact(contact)&quot;&gt;clear&lt;/button&gt;
+ *         &lt;button ng-click=&quot;removeContact(contact)&quot;&gt;X&lt;/button&gt;
+ *       &lt;/li&gt;
+ *       &lt;li&gt;[ &lt;button ng-click=&quot;addContact()&quot;&gt;add&lt;/button&gt; ]&lt;/li&gt;
+ *    &lt;/ul&gt;
+ *   &lt;/div&gt;
+ *  &lt;/file&gt;
+ *  &lt;file name=&quot;app.js&quot;&gt;
+ *   angular.module(&#039;controllerExample&#039;, [])
+ *     .controller(&#039;SettingsController2&#039;, [&#039;$scope&#039;, SettingsController2]);
+ *
+ *   function SettingsController2($scope) {
+ *     $scope.name = &quot;John Smith&quot;;
+ *     $scope.contacts = [
+ *       {type:&#039;phone&#039;, value:&#039;408 555 1212&#039;},
+ *       {type:&#039;email&#039;, value:&#039;john.smith@example.org&#039;} ];
+ *
+ *     $scope.greet = function() {
+ *       alert($scope.name);
+ *     };
+ *
+ *     $scope.addContact = function() {
+ *       $scope.contacts.push({type:&#039;email&#039;, value:&#039;yourname@example.org&#039;});
+ *     };
+ *
+ *     $scope.removeContact = function(contactToRemove) {
+ *       var index = $scope.contacts.indexOf(contactToRemove);
+ *       $scope.contacts.splice(index, 1);
+ *     };
+ *
+ *     $scope.clearContact = function(contact) {
+ *       contact.type = &#039;phone&#039;;
+ *       contact.value = &#039;&#039;;
+ *     };
+ *   }
+ *  &lt;/file&gt;
+ *  &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+ *    it(&#039;should check controller&#039;, function() {
+ *      var container = element(by.id(&#039;ctrl-exmpl&#039;));
+ *
+ *      expect(container.element(by.model(&#039;name&#039;))
+ *          .getAttribute(&#039;value&#039;)).toBe(&#039;John Smith&#039;);
+ *
+ *      var firstRepeat =
+ *          container.element(by.repeater(&#039;contact in contacts&#039;).row(0));
+ *      var secondRepeat =
+ *          container.element(by.repeater(&#039;contact in contacts&#039;).row(1));
+ *
+ *      expect(firstRepeat.element(by.model(&#039;contact.value&#039;)).getAttribute(&#039;value&#039;))
+ *          .toBe(&#039;408 555 1212&#039;);
+ *      expect(secondRepeat.element(by.model(&#039;contact.value&#039;)).getAttribute(&#039;value&#039;))
+ *          .toBe(&#039;john.smith@example.org&#039;);
+ *
+ *      firstRepeat.element(by.buttonText(&#039;clear&#039;)).click();
+ *
+ *      expect(firstRepeat.element(by.model(&#039;contact.value&#039;)).getAttribute(&#039;value&#039;))
+ *          .toBe(&#039;&#039;);
+ *
+ *      container.element(by.buttonText(&#039;add&#039;)).click();
+ *
+ *      expect(container.element(by.repeater(&#039;contact in contacts&#039;).row(2))
+ *          .element(by.model(&#039;contact.value&#039;))
+ *          .getAttribute(&#039;value&#039;))
+ *          .toBe(&#039;yourname@example.org&#039;);
+ *    });
+ *  &lt;/file&gt;
+ *&lt;/example&gt;
+
+ */
+var ngControllerDirective = [function() {
+  return {
+    restrict: &#039;A&#039;,
+    scope: true,
+    controller: &#039;@&#039;,
+    priority: 500
+  };
+}];</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

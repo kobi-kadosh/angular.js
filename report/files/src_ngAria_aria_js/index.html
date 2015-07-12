@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - src\ngAria\aria.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>src\ngAria\aria.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">75.15</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">385</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">39.59</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">2.36</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+/**
+ * @ngdoc module
+ * @name ngAria
+ * @description
+ *
+ * The `ngAria` module provides support for common
+ * [&lt;abbr title=&quot;Accessible Rich Internet Applications&quot;&gt;ARIA&lt;/abbr&gt;](http://www.w3.org/TR/wai-aria/)
+ * attributes that convey state or semantic information about the application for users
+ * of assistive technologies, such as screen readers.
+ *
+ * &lt;div doc-module-components=&quot;ngAria&quot;&gt;&lt;/div&gt;
+ *
+ * ## Usage
+ *
+ * For ngAria to do its magic, simply include the module `ngAria` as a dependency. The following
+ * directives are supported:
+ * `ngModel`, `ngDisabled`, `ngShow`, `ngHide`, `ngClick`, `ngDblClick`, and `ngMessages`.
+ *
+ * Below is a more detailed breakdown of the attributes handled by ngAria:
+ *
+ * | Directive                                   | Supported Attributes                                                                   |
+ * |---------------------------------------------|----------------------------------------------------------------------------------------|
+ * | {@link ng.directive:ngDisabled ngDisabled}  | aria-disabled                                                                          |
+ * | {@link ng.directive:ngShow ngShow}          | aria-hidden                                                                            |
+ * | {@link ng.directive:ngHide ngHide}          | aria-hidden                                                                            |
+ * | {@link ng.directive:ngDblclick ngDblclick}  | tabindex                                                                               |
+ * | {@link module:ngMessages ngMessages}        | aria-live                                                                              |
+ * | {@link ng.directive:ngModel ngModel}        | aria-checked, aria-valuemin, aria-valuemax, aria-valuenow, aria-invalid, aria-required, input roles |
+ * | {@link ng.directive:ngClick ngClick}        | tabindex, keypress event, button role                                                               |
+ *
+ * Find out more information about each directive by reading the
+ * {@link guide/accessibility ngAria Developer Guide}.
+ *
+ * ##Example
+ * Using ngDisabled with ngAria:
+ * ```html
+ * &lt;md-checkbox ng-disabled=&quot;disabled&quot;&gt;
+ * ```
+ * Becomes:
+ * ```html
+ * &lt;md-checkbox ng-disabled=&quot;disabled&quot; aria-disabled=&quot;true&quot;&gt;
+ * ```
+ *
+ * ##Disabling Attributes
+ * It&#039;s possible to disable individual attributes added by ngAria with the
+ * {@link ngAria.$ariaProvider#config config} method. For more details, see the
+ * {@link guide/accessibility Developer Guide}.
+ */
+ /* global -ngAriaModule */
+var ngAriaModule = angular.module(&#039;ngAria&#039;, [&#039;ng&#039;]).
+                        provider(&#039;$aria&#039;, $AriaProvider);
+
+/**
+ * @ngdoc provider
+ * @name $ariaProvider
+ *
+ * @description
+ *
+ * Used for configuring the ARIA attributes injected and managed by ngAria.
+ *
+ * ```js
+ * angular.module(&#039;myApp&#039;, [&#039;ngAria&#039;], function config($ariaProvider) {
+ *   $ariaProvider.config({
+ *     ariaValue: true,
+ *     tabindex: false
+ *   });
+ * });
+ *```
+ *
+ * ## Dependencies
+ * Requires the {@link ngAria} module to be installed.
+ *
+ */
+function $AriaProvider() {
+  var config = {
+    ariaHidden: true,
+    ariaChecked: true,
+    ariaDisabled: true,
+    ariaRequired: true,
+    ariaInvalid: true,
+    ariaMultiline: true,
+    ariaValue: true,
+    tabindex: true,
+    bindKeypress: true,
+    bindRoleForClick: true
+  };
+
+  /**
+   * @ngdoc method
+   * @name $ariaProvider#config
+   *
+   * @param {object} config object to enable/disable specific ARIA attributes
+   *
+   *  - **ariaHidden** – `{boolean}` – Enables/disables aria-hidden tags
+   *  - **ariaChecked** – `{boolean}` – Enables/disables aria-checked tags
+   *  - **ariaDisabled** – `{boolean}` – Enables/disables aria-disabled tags
+   *  - **ariaRequired** – `{boolean}` – Enables/disables aria-required tags
+   *  - **ariaInvalid** – `{boolean}` – Enables/disables aria-invalid tags
+   *  - **ariaMultiline** – `{boolean}` – Enables/disables aria-multiline tags
+   *  - **ariaValue** – `{boolean}` – Enables/disables aria-valuemin, aria-valuemax and aria-valuenow tags
+   *  - **tabindex** – `{boolean}` – Enables/disables tabindex tags
+   *  - **bindKeypress** – `{boolean}` – Enables/disables keypress event binding on `&amp;lt;div&amp;gt;` and
+   *    `&amp;lt;li&amp;gt;` elements with ng-click
+   *  - **bindRoleForClick** – `{boolean}` – Adds role=button to non-interactive elements like `div`
+   *    using ng-click, making them more accessible to users of assistive technologies
+   *
+   * @description
+   * Enables/disables various ARIA attributes
+   */
+  this.config = function(newConfig) {
+    config = angular.extend(config, newConfig);
+  };
+
+  function watchExpr(attrName, ariaAttr, negate) {
+    return function(scope, elem, attr) {
+      var ariaCamelName = attr.$normalize(ariaAttr);
+      if (config[ariaCamelName] &amp;&amp; !attr[ariaCamelName]) {
+        scope.$watch(attr[attrName], function(boolVal) {
+          // ensure boolean value
+          boolVal = negate ? !boolVal : !!boolVal;
+          elem.attr(ariaAttr, boolVal);
+        });
+      }
+    };
+  }
+
+  /**
+   * @ngdoc service
+   * @name $aria
+   *
+   * @description
+   * @priority 200
+   *
+   * The $aria service contains helper methods for applying common
+   * [ARIA](http://www.w3.org/TR/wai-aria/) attributes to HTML directives.
+   *
+   * ngAria injects common accessibility attributes that tell assistive technologies when HTML
+   * elements are enabled, selected, hidden, and more. To see how this is performed with ngAria,
+   * let&#039;s review a code snippet from ngAria itself:
+   *
+   *```js
+   * ngAriaModule.directive(&#039;ngDisabled&#039;, [&#039;$aria&#039;, function($aria) {
+   *   return $aria.$$watchExpr(&#039;ngDisabled&#039;, &#039;aria-disabled&#039;);
+   * }])
+   *```
+   * Shown above, the ngAria module creates a directive with the same signature as the
+   * traditional `ng-disabled` directive. But this ngAria version is dedicated to
+   * solely managing accessibility attributes. The internal `$aria` service is used to watch the
+   * boolean attribute `ngDisabled`. If it has not been explicitly set by the developer,
+   * `aria-disabled` is injected as an attribute with its value synchronized to the value in
+   * `ngDisabled`.
+   *
+   * Because ngAria hooks into the `ng-disabled` directive, developers do not have to do
+   * anything to enable this feature. The `aria-disabled` attribute is automatically managed
+   * simply as a silent side-effect of using `ng-disabled` with the ngAria module.
+   *
+   * The full list of directives that interface with ngAria:
+   * * **ngModel**
+   * * **ngShow**
+   * * **ngHide**
+   * * **ngClick**
+   * * **ngDblclick**
+   * * **ngMessages**
+   * * **ngDisabled**
+   *
+   * Read the {@link guide/accessibility ngAria Developer Guide} for a thorough explanation of each
+   * directive.
+   *
+   *
+   * ## Dependencies
+   * Requires the {@link ngAria} module to be installed.
+   */
+  this.$get = function() {
+    return {
+      config: function(key) {
+        return config[key];
+      },
+      $$watchExpr: watchExpr
+    };
+  };
+}
+
+
+ngAriaModule.directive(&#039;ngShow&#039;, [&#039;$aria&#039;, function($aria) {
+  return $aria.$$watchExpr(&#039;ngShow&#039;, &#039;aria-hidden&#039;, true);
+}])
+.directive(&#039;ngHide&#039;, [&#039;$aria&#039;, function($aria) {
+  return $aria.$$watchExpr(&#039;ngHide&#039;, &#039;aria-hidden&#039;, false);
+}])
+.directive(&#039;ngModel&#039;, [&#039;$aria&#039;, function($aria) {
+
+  function shouldAttachAttr(attr, normalizedAttr, elem) {
+    return $aria.config(normalizedAttr) &amp;&amp; !elem.attr(attr);
+  }
+
+  function shouldAttachRole(role, elem) {
+    return !elem.attr(&#039;role&#039;) &amp;&amp; (elem.attr(&#039;type&#039;) === role) &amp;&amp; (elem[0].nodeName !== &#039;INPUT&#039;);
+  }
+
+  function getShape(attr, elem) {
+    var type = attr.type,
+        role = attr.role;
+
+    return ((type || role) === &#039;checkbox&#039; || role === &#039;menuitemcheckbox&#039;) ? &#039;checkbox&#039; :
+           ((type || role) === &#039;radio&#039;    || role === &#039;menuitemradio&#039;) ? &#039;radio&#039; :
+           (type === &#039;range&#039;              || role === &#039;progressbar&#039; || role === &#039;slider&#039;) ? &#039;range&#039; :
+           (type || role) === &#039;textbox&#039;   || elem[0].nodeName === &#039;TEXTAREA&#039; ? &#039;multiline&#039; : &#039;&#039;;
+  }
+
+  return {
+    restrict: &#039;A&#039;,
+    require: &#039;?ngModel&#039;,
+    priority: 200, //Make sure watches are fired after any other directives that affect the ngModel value
+    compile: function(elem, attr) {
+      var shape = getShape(attr, elem);
+
+      return {
+        pre: function(scope, elem, attr, ngModel) {
+          if (shape === &#039;checkbox&#039; &amp;&amp; attr.type !== &#039;checkbox&#039;) {
+            //Use the input[checkbox] $isEmpty implementation for elements with checkbox roles
+            ngModel.$isEmpty = function(value) {
+              return value === false;
+            };
+          }
+        },
+        post: function(scope, elem, attr, ngModel) {
+          var needsTabIndex = shouldAttachAttr(&#039;tabindex&#039;, &#039;tabindex&#039;, elem);
+
+          function ngAriaWatchModelValue() {
+            return ngModel.$modelValue;
+          }
+
+          function getRadioReaction() {
+            if (needsTabIndex) {
+              needsTabIndex = false;
+              return function ngAriaRadioReaction(newVal) {
+                var boolVal = (attr.value == ngModel.$viewValue);
+                elem.attr(&#039;aria-checked&#039;, boolVal);
+                elem.attr(&#039;tabindex&#039;, 0 - !boolVal);
+              };
+            } else {
+              return function ngAriaRadioReaction(newVal) {
+                elem.attr(&#039;aria-checked&#039;, (attr.value == ngModel.$viewValue));
+              };
+            }
+          }
+
+          function ngAriaCheckboxReaction() {
+            elem.attr(&#039;aria-checked&#039;, !ngModel.$isEmpty(ngModel.$viewValue));
+          }
+
+          switch (shape) {
+            case &#039;radio&#039;:
+            case &#039;checkbox&#039;:
+              if (shouldAttachRole(shape, elem)) {
+                elem.attr(&#039;role&#039;, shape);
+              }
+              if (shouldAttachAttr(&#039;aria-checked&#039;, &#039;ariaChecked&#039;, elem)) {
+                scope.$watch(ngAriaWatchModelValue, shape === &#039;radio&#039; ?
+                    getRadioReaction() : ngAriaCheckboxReaction);
+              }
+              break;
+            case &#039;range&#039;:
+              if (shouldAttachRole(shape, elem)) {
+                elem.attr(&#039;role&#039;, &#039;slider&#039;);
+              }
+              if ($aria.config(&#039;ariaValue&#039;)) {
+                var needsAriaValuemin = !elem.attr(&#039;aria-valuemin&#039;) &amp;&amp;
+                    (attr.hasOwnProperty(&#039;min&#039;) || attr.hasOwnProperty(&#039;ngMin&#039;));
+                var needsAriaValuemax = !elem.attr(&#039;aria-valuemax&#039;) &amp;&amp;
+                    (attr.hasOwnProperty(&#039;max&#039;) || attr.hasOwnProperty(&#039;ngMax&#039;));
+                var needsAriaValuenow = !elem.attr(&#039;aria-valuenow&#039;);
+
+                if (needsAriaValuemin) {
+                  attr.$observe(&#039;min&#039;, function ngAriaValueMinReaction(newVal) {
+                    elem.attr(&#039;aria-valuemin&#039;, newVal);
+                  });
+                }
+                if (needsAriaValuemax) {
+                  attr.$observe(&#039;max&#039;, function ngAriaValueMinReaction(newVal) {
+                    elem.attr(&#039;aria-valuemax&#039;, newVal);
+                  });
+                }
+                if (needsAriaValuenow) {
+                  scope.$watch(ngAriaWatchModelValue, function ngAriaValueNowReaction(newVal) {
+                    elem.attr(&#039;aria-valuenow&#039;, newVal);
+                  });
+                }
+              }
+              break;
+            case &#039;multiline&#039;:
+              if (shouldAttachAttr(&#039;aria-multiline&#039;, &#039;ariaMultiline&#039;, elem)) {
+                elem.attr(&#039;aria-multiline&#039;, true);
+              }
+              break;
+          }
+
+          if (needsTabIndex) {
+            elem.attr(&#039;tabindex&#039;, 0);
+          }
+
+          if (ngModel.$validators.required &amp;&amp; shouldAttachAttr(&#039;aria-required&#039;, &#039;ariaRequired&#039;, elem)) {
+            scope.$watch(function ngAriaRequiredWatch() {
+              return ngModel.$error.required;
+            }, function ngAriaRequiredReaction(newVal) {
+              elem.attr(&#039;aria-required&#039;, !!newVal);
+            });
+          }
+
+          if (shouldAttachAttr(&#039;aria-invalid&#039;, &#039;ariaInvalid&#039;, elem)) {
+            scope.$watch(function ngAriaInvalidWatch() {
+              return ngModel.$invalid;
+            }, function ngAriaInvalidReaction(newVal) {
+              elem.attr(&#039;aria-invalid&#039;, !!newVal);
+            });
+          }
+        }
+      };
+    }
+  };
+}])
+.directive(&#039;ngDisabled&#039;, [&#039;$aria&#039;, function($aria) {
+  return $aria.$$watchExpr(&#039;ngDisabled&#039;, &#039;aria-disabled&#039;);
+}])
+.directive(&#039;ngMessages&#039;, function() {
+  return {
+    restrict: &#039;A&#039;,
+    require: &#039;?ngMessages&#039;,
+    link: function(scope, elem, attr, ngMessages) {
+      if (!elem.attr(&#039;aria-live&#039;)) {
+        elem.attr(&#039;aria-live&#039;, &#039;assertive&#039;);
+      }
+    }
+  };
+})
+.directive(&#039;ngClick&#039;,[&#039;$aria&#039;, &#039;$parse&#039;, function($aria, $parse) {
+  return {
+    restrict: &#039;A&#039;,
+    compile: function(elem, attr) {
+      var fn = $parse(attr.ngClick, /* interceptorFn */ null, /* expensiveChecks */ true);
+      return function(scope, elem, attr) {
+
+        var nodeBlackList = [&#039;BUTTON&#039;, &#039;A&#039;, &#039;INPUT&#039;, &#039;TEXTAREA&#039;];
+
+        function isNodeOneOf(elem, nodeTypeArray) {
+          if (nodeTypeArray.indexOf(elem[0].nodeName) !== -1) {
+            return true;
+          }
+        }
+
+        if ($aria.config(&#039;bindRoleForClick&#039;)
+            &amp;&amp; !elem.attr(&#039;role&#039;)
+              &amp;&amp; !isNodeOneOf(elem, nodeBlackList)) {
+          elem.attr(&#039;role&#039;, &#039;button&#039;);
+        }
+
+        if ($aria.config(&#039;tabindex&#039;) &amp;&amp; !elem.attr(&#039;tabindex&#039;)) {
+          elem.attr(&#039;tabindex&#039;, 0);
+        }
+
+        if ($aria.config(&#039;bindKeypress&#039;) &amp;&amp; !attr.ngKeypress &amp;&amp; !isNodeOneOf(elem, nodeBlackList)) {
+          elem.on(&#039;keypress&#039;, function(event) {
+            var keyCode = event.which || event.keyCode;
+            if (keyCode === 32 || keyCode === 13) {
+              scope.$apply(callback);
+            }
+
+            function callback() {
+              fn(scope, { $event: event });
+            }
+          });
+        }
+      };
+    }
+  };
+}])
+.directive(&#039;ngDblclick&#039;, [&#039;$aria&#039;, function($aria) {
+  return function(scope, elem, attr) {
+    if ($aria.config(&#039;tabindex&#039;) &amp;&amp; !elem.attr(&#039;tabindex&#039;)) {
+      elem.attr(&#039;tabindex&#039;, 0);
+    }
+  };
+}]);</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

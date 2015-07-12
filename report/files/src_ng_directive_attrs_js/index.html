@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - src\ng\directive\attrs.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>src\ng\directive\attrs.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">75.52</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">447</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">25.35</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">0.60</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+/**
+ * @ngdoc directive
+ * @name ngHref
+ * @restrict A
+ * @priority 99
+ *
+ * @description
+ * Using Angular markup like `{{hash}}` in an href attribute will
+ * make the link go to the wrong URL if the user clicks it before
+ * Angular has a chance to replace the `{{hash}}` markup with its
+ * value. Until Angular replaces the markup the link will be broken
+ * and will most likely return a 404 error. The `ngHref` directive
+ * solves this problem.
+ *
+ * The wrong way to write it:
+ * ```html
+ * &lt;a href=&quot;http://www.gravatar.com/avatar/{{hash}}&quot;&gt;link1&lt;/a&gt;
+ * ```
+ *
+ * The correct way to write it:
+ * ```html
+ * &lt;a ng-href=&quot;http://www.gravatar.com/avatar/{{hash}}&quot;&gt;link1&lt;/a&gt;
+ * ```
+ *
+ * @element A
+ * @param {template} ngHref any string which can contain `{{}}` markup.
+ *
+ * @example
+ * This example shows various combinations of `href`, `ng-href` and `ng-click` attributes
+ * in links and their different behaviors:
+    &lt;example&gt;
+      &lt;file name=&quot;index.html&quot;&gt;
+        &lt;input ng-model=&quot;value&quot; /&gt;&lt;br /&gt;
+        &lt;a id=&quot;link-1&quot; href ng-click=&quot;value = 1&quot;&gt;link 1&lt;/a&gt; (link, don&#039;t reload)&lt;br /&gt;
+        &lt;a id=&quot;link-2&quot; href=&quot;&quot; ng-click=&quot;value = 2&quot;&gt;link 2&lt;/a&gt; (link, don&#039;t reload)&lt;br /&gt;
+        &lt;a id=&quot;link-3&quot; ng-href=&quot;/{{&#039;123&#039;}}&quot;&gt;link 3&lt;/a&gt; (link, reload!)&lt;br /&gt;
+        &lt;a id=&quot;link-4&quot; href=&quot;&quot; name=&quot;xx&quot; ng-click=&quot;value = 4&quot;&gt;anchor&lt;/a&gt; (link, don&#039;t reload)&lt;br /&gt;
+        &lt;a id=&quot;link-5&quot; name=&quot;xxx&quot; ng-click=&quot;value = 5&quot;&gt;anchor&lt;/a&gt; (no link)&lt;br /&gt;
+        &lt;a id=&quot;link-6&quot; ng-href=&quot;{{value}}&quot;&gt;link&lt;/a&gt; (link, change location)
+      &lt;/file&gt;
+      &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+        it(&#039;should execute ng-click but not reload when href without value&#039;, function() {
+          element(by.id(&#039;link-1&#039;)).click();
+          expect(element(by.model(&#039;value&#039;)).getAttribute(&#039;value&#039;)).toEqual(&#039;1&#039;);
+          expect(element(by.id(&#039;link-1&#039;)).getAttribute(&#039;href&#039;)).toBe(&#039;&#039;);
+        });
+
+        it(&#039;should execute ng-click but not reload when href empty string&#039;, function() {
+          element(by.id(&#039;link-2&#039;)).click();
+          expect(element(by.model(&#039;value&#039;)).getAttribute(&#039;value&#039;)).toEqual(&#039;2&#039;);
+          expect(element(by.id(&#039;link-2&#039;)).getAttribute(&#039;href&#039;)).toBe(&#039;&#039;);
+        });
+
+        it(&#039;should execute ng-click and change url when ng-href specified&#039;, function() {
+          expect(element(by.id(&#039;link-3&#039;)).getAttribute(&#039;href&#039;)).toMatch(/\/123$/);
+
+          element(by.id(&#039;link-3&#039;)).click();
+
+          // At this point, we navigate away from an Angular page, so we need
+          // to use browser.driver to get the base webdriver.
+
+          browser.wait(function() {
+            return browser.driver.getCurrentUrl().then(function(url) {
+              return url.match(/\/123$/);
+            });
+          }, 5000, &#039;page should navigate to /123&#039;);
+        });
+
+        it(&#039;should execute ng-click but not reload when href empty string and name specified&#039;, function() {
+          element(by.id(&#039;link-4&#039;)).click();
+          expect(element(by.model(&#039;value&#039;)).getAttribute(&#039;value&#039;)).toEqual(&#039;4&#039;);
+          expect(element(by.id(&#039;link-4&#039;)).getAttribute(&#039;href&#039;)).toBe(&#039;&#039;);
+        });
+
+        it(&#039;should execute ng-click but not reload when no href but name specified&#039;, function() {
+          element(by.id(&#039;link-5&#039;)).click();
+          expect(element(by.model(&#039;value&#039;)).getAttribute(&#039;value&#039;)).toEqual(&#039;5&#039;);
+          expect(element(by.id(&#039;link-5&#039;)).getAttribute(&#039;href&#039;)).toBe(null);
+        });
+
+        it(&#039;should only change url when only ng-href&#039;, function() {
+          element(by.model(&#039;value&#039;)).clear();
+          element(by.model(&#039;value&#039;)).sendKeys(&#039;6&#039;);
+          expect(element(by.id(&#039;link-6&#039;)).getAttribute(&#039;href&#039;)).toMatch(/\/6$/);
+
+          element(by.id(&#039;link-6&#039;)).click();
+
+          // At this point, we navigate away from an Angular page, so we need
+          // to use browser.driver to get the base webdriver.
+          browser.wait(function() {
+            return browser.driver.getCurrentUrl().then(function(url) {
+              return url.match(/\/6$/);
+            });
+          }, 5000, &#039;page should navigate to /6&#039;);
+        });
+      &lt;/file&gt;
+    &lt;/example&gt;
+ */
+
+/**
+ * @ngdoc directive
+ * @name ngSrc
+ * @restrict A
+ * @priority 99
+ *
+ * @description
+ * Using Angular markup like `{{hash}}` in a `src` attribute doesn&#039;t
+ * work right: The browser will fetch from the URL with the literal
+ * text `{{hash}}` until Angular replaces the expression inside
+ * `{{hash}}`. The `ngSrc` directive solves this problem.
+ *
+ * The buggy way to write it:
+ * ```html
+ * &lt;img src=&quot;http://www.gravatar.com/avatar/{{hash}}&quot; alt=&quot;Description&quot;/&gt;
+ * ```
+ *
+ * The correct way to write it:
+ * ```html
+ * &lt;img ng-src=&quot;http://www.gravatar.com/avatar/{{hash}}&quot; alt=&quot;Description&quot; /&gt;
+ * ```
+ *
+ * @element IMG
+ * @param {template} ngSrc any string which can contain `{{}}` markup.
+ */
+
+/**
+ * @ngdoc directive
+ * @name ngSrcset
+ * @restrict A
+ * @priority 99
+ *
+ * @description
+ * Using Angular markup like `{{hash}}` in a `srcset` attribute doesn&#039;t
+ * work right: The browser will fetch from the URL with the literal
+ * text `{{hash}}` until Angular replaces the expression inside
+ * `{{hash}}`. The `ngSrcset` directive solves this problem.
+ *
+ * The buggy way to write it:
+ * ```html
+ * &lt;img srcset=&quot;http://www.gravatar.com/avatar/{{hash}} 2x&quot; alt=&quot;Description&quot;/&gt;
+ * ```
+ *
+ * The correct way to write it:
+ * ```html
+ * &lt;img ng-srcset=&quot;http://www.gravatar.com/avatar/{{hash}} 2x&quot; alt=&quot;Description&quot; /&gt;
+ * ```
+ *
+ * @element IMG
+ * @param {template} ngSrcset any string which can contain `{{}}` markup.
+ */
+
+/**
+ * @ngdoc directive
+ * @name ngDisabled
+ * @restrict A
+ * @priority 100
+ *
+ * @description
+ *
+ * This directive sets the `disabled` attribute on the element if the
+ * {@link guide/expression expression} inside `ngDisabled` evaluates to truthy.
+ *
+ * A special directive is necessary because we cannot use interpolation inside the `disabled`
+ * attribute.  The following example would make the button enabled on Chrome/Firefox
+ * but not on older IEs:
+ *
+ * ```html
+ * &lt;!-- See below for an example of ng-disabled being used correctly --&gt;
+ * &lt;div ng-init=&quot;isDisabled = false&quot;&gt;
+ *  &lt;button disabled=&quot;{{isDisabled}}&quot;&gt;Disabled&lt;/button&gt;
+ * &lt;/div&gt;
+ * ```
+ *
+ * This is because the HTML specification does not require browsers to preserve the values of
+ * boolean attributes such as `disabled` (Their presence means true and their absence means false.)
+ * If we put an Angular interpolation expression into such an attribute then the
+ * binding information would be lost when the browser removes the attribute.
+ *
+ * @example
+    &lt;example&gt;
+      &lt;file name=&quot;index.html&quot;&gt;
+        &lt;label&gt;Click me to toggle: &lt;input type=&quot;checkbox&quot; ng-model=&quot;checked&quot;&gt;&lt;/label&gt;&lt;br/&gt;
+        &lt;button ng-model=&quot;button&quot; ng-disabled=&quot;checked&quot;&gt;Button&lt;/button&gt;
+      &lt;/file&gt;
+      &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+        it(&#039;should toggle button&#039;, function() {
+          expect(element(by.css(&#039;button&#039;)).getAttribute(&#039;disabled&#039;)).toBeFalsy();
+          element(by.model(&#039;checked&#039;)).click();
+          expect(element(by.css(&#039;button&#039;)).getAttribute(&#039;disabled&#039;)).toBeTruthy();
+        });
+      &lt;/file&gt;
+    &lt;/example&gt;
+ *
+ * @element INPUT
+ * @param {expression} ngDisabled If the {@link guide/expression expression} is truthy,
+ *     then the `disabled` attribute will be set on the element
+ */
+
+
+/**
+ * @ngdoc directive
+ * @name ngChecked
+ * @restrict A
+ * @priority 100
+ *
+ * @description
+ * Sets the `checked` attribute on the element, if the expression inside `ngChecked` is truthy.
+ *
+ * Note that this directive should not be used together with {@link ngModel `ngModel`},
+ * as this can lead to unexpected behavior.
+ *
+ * ### Why do we need `ngChecked`?
+ *
+ * The HTML specification does not require browsers to preserve the values of boolean attributes
+ * such as checked. (Their presence means true and their absence means false.)
+ * If we put an Angular interpolation expression into such an attribute then the
+ * binding information would be lost when the browser removes the attribute.
+ * The `ngChecked` directive solves this problem for the `checked` attribute.
+ * This complementary directive is not removed by the browser and so provides
+ * a permanent reliable place to store the binding information.
+ * @example
+    &lt;example&gt;
+      &lt;file name=&quot;index.html&quot;&gt;
+        &lt;label&gt;Check me to check both: &lt;input type=&quot;checkbox&quot; ng-model=&quot;master&quot;&gt;&lt;/label&gt;&lt;br/&gt;
+        &lt;input id=&quot;checkSlave&quot; type=&quot;checkbox&quot; ng-checked=&quot;master&quot; aria-label=&quot;Slave input&quot;&gt;
+      &lt;/file&gt;
+      &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+        it(&#039;should check both checkBoxes&#039;, function() {
+          expect(element(by.id(&#039;checkSlave&#039;)).getAttribute(&#039;checked&#039;)).toBeFalsy();
+          element(by.model(&#039;master&#039;)).click();
+          expect(element(by.id(&#039;checkSlave&#039;)).getAttribute(&#039;checked&#039;)).toBeTruthy();
+        });
+      &lt;/file&gt;
+    &lt;/example&gt;
+ *
+ * @element INPUT
+ * @param {expression} ngChecked If the {@link guide/expression expression} is truthy,
+ *     then the `checked` attribute will be set on the element
+ */
+
+
+/**
+ * @ngdoc directive
+ * @name ngReadonly
+ * @restrict A
+ * @priority 100
+ *
+ * @description
+ * The HTML specification does not require browsers to preserve the values of boolean attributes
+ * such as readonly. (Their presence means true and their absence means false.)
+ * If we put an Angular interpolation expression into such an attribute then the
+ * binding information would be lost when the browser removes the attribute.
+ * The `ngReadonly` directive solves this problem for the `readonly` attribute.
+ * This complementary directive is not removed by the browser and so provides
+ * a permanent reliable place to store the binding information.
+ * @example
+    &lt;example&gt;
+      &lt;file name=&quot;index.html&quot;&gt;
+        &lt;label&gt;Check me to make text readonly: &lt;input type=&quot;checkbox&quot; ng-model=&quot;checked&quot;&gt;&lt;/label&gt;&lt;br/&gt;
+        &lt;input type=&quot;text&quot; ng-readonly=&quot;checked&quot; value=&quot;I&#039;m Angular&quot; aria-label=&quot;Readonly field&quot; /&gt;
+      &lt;/file&gt;
+      &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+        it(&#039;should toggle readonly attr&#039;, function() {
+          expect(element(by.css(&#039;[type=&quot;text&quot;]&#039;)).getAttribute(&#039;readonly&#039;)).toBeFalsy();
+          element(by.model(&#039;checked&#039;)).click();
+          expect(element(by.css(&#039;[type=&quot;text&quot;]&#039;)).getAttribute(&#039;readonly&#039;)).toBeTruthy();
+        });
+      &lt;/file&gt;
+    &lt;/example&gt;
+ *
+ * @element INPUT
+ * @param {expression} ngReadonly If the {@link guide/expression expression} is truthy,
+ *     then special attribute &quot;readonly&quot; will be set on the element
+ */
+
+
+/**
+ * @ngdoc directive
+ * @name ngSelected
+ * @restrict A
+ * @priority 100
+ *
+ * @description
+ * The HTML specification does not require browsers to preserve the values of boolean attributes
+ * such as selected. (Their presence means true and their absence means false.)
+ * If we put an Angular interpolation expression into such an attribute then the
+ * binding information would be lost when the browser removes the attribute.
+ * The `ngSelected` directive solves this problem for the `selected` attribute.
+ * This complementary directive is not removed by the browser and so provides
+ * a permanent reliable place to store the binding information.
+ *
+ * @example
+    &lt;example&gt;
+      &lt;file name=&quot;index.html&quot;&gt;
+        &lt;label&gt;Check me to select: &lt;input type=&quot;checkbox&quot; ng-model=&quot;selected&quot;&gt;&lt;/label&gt;&lt;br/&gt;
+        &lt;select aria-label=&quot;ngSelected demo&quot;&gt;
+          &lt;option&gt;Hello!&lt;/option&gt;
+          &lt;option id=&quot;greet&quot; ng-selected=&quot;selected&quot;&gt;Greetings!&lt;/option&gt;
+        &lt;/select&gt;
+      &lt;/file&gt;
+      &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+        it(&#039;should select Greetings!&#039;, function() {
+          expect(element(by.id(&#039;greet&#039;)).getAttribute(&#039;selected&#039;)).toBeFalsy();
+          element(by.model(&#039;selected&#039;)).click();
+          expect(element(by.id(&#039;greet&#039;)).getAttribute(&#039;selected&#039;)).toBeTruthy();
+        });
+      &lt;/file&gt;
+    &lt;/example&gt;
+ *
+ * @element OPTION
+ * @param {expression} ngSelected If the {@link guide/expression expression} is truthy,
+ *     then special attribute &quot;selected&quot; will be set on the element
+ */
+
+/**
+ * @ngdoc directive
+ * @name ngOpen
+ * @restrict A
+ * @priority 100
+ *
+ * @description
+ * The HTML specification does not require browsers to preserve the values of boolean attributes
+ * such as open. (Their presence means true and their absence means false.)
+ * If we put an Angular interpolation expression into such an attribute then the
+ * binding information would be lost when the browser removes the attribute.
+ * The `ngOpen` directive solves this problem for the `open` attribute.
+ * This complementary directive is not removed by the browser and so provides
+ * a permanent reliable place to store the binding information.
+ * @example
+     &lt;example&gt;
+       &lt;file name=&quot;index.html&quot;&gt;
+         &lt;label&gt;Check me check multiple: &lt;input type=&quot;checkbox&quot; ng-model=&quot;open&quot;&gt;&lt;/label&gt;&lt;br/&gt;
+         &lt;details id=&quot;details&quot; ng-open=&quot;open&quot;&gt;
+            &lt;summary&gt;Show/Hide me&lt;/summary&gt;
+         &lt;/details&gt;
+       &lt;/file&gt;
+       &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+         it(&#039;should toggle open&#039;, function() {
+           expect(element(by.id(&#039;details&#039;)).getAttribute(&#039;open&#039;)).toBeFalsy();
+           element(by.model(&#039;open&#039;)).click();
+           expect(element(by.id(&#039;details&#039;)).getAttribute(&#039;open&#039;)).toBeTruthy();
+         });
+       &lt;/file&gt;
+     &lt;/example&gt;
+ *
+ * @element DETAILS
+ * @param {expression} ngOpen If the {@link guide/expression expression} is truthy,
+ *     then special attribute &quot;open&quot; will be set on the element
+ */
+
+var ngAttributeAliasDirectives = {};
+
+// boolean attrs are evaluated
+forEach(BOOLEAN_ATTR, function(propName, attrName) {
+  // binding to multiple is not supported
+  if (propName == &quot;multiple&quot;) return;
+
+  function defaultLinkFn(scope, element, attr) {
+    scope.$watch(attr[normalized], function ngBooleanAttrWatchAction(value) {
+      attr.$set(attrName, !!value);
+    });
+  }
+
+  var normalized = directiveNormalize(&#039;ng-&#039; + attrName);
+  var linkFn = defaultLinkFn;
+
+  if (propName === &#039;checked&#039;) {
+    linkFn = function(scope, element, attr) {
+      // ensuring ngChecked doesn&#039;t interfere with ngModel when both are set on the same input
+      if (attr.ngModel !== attr[normalized]) {
+        defaultLinkFn(scope, element, attr);
+      }
+    };
+  }
+
+  ngAttributeAliasDirectives[normalized] = function() {
+    return {
+      restrict: &#039;A&#039;,
+      priority: 100,
+      link: linkFn
+    };
+  };
+});
+
+// aliased input attrs are evaluated
+forEach(ALIASED_ATTR, function(htmlAttr, ngAttr) {
+  ngAttributeAliasDirectives[ngAttr] = function() {
+    return {
+      priority: 100,
+      link: function(scope, element, attr) {
+        //special case ngPattern when a literal regular expression value
+        //is used as the expression (this way we don&#039;t have to watch anything).
+        if (ngAttr === &quot;ngPattern&quot; &amp;&amp; attr.ngPattern.charAt(0) == &quot;/&quot;) {
+          var match = attr.ngPattern.match(REGEX_STRING_REGEXP);
+          if (match) {
+            attr.$set(&quot;ngPattern&quot;, new RegExp(match[1], match[2]));
+            return;
+          }
+        }
+
+        scope.$watch(attr[ngAttr], function ngAttrAliasWatchAction(value) {
+          attr.$set(ngAttr, value);
+        });
+      }
+    };
+  };
+});
+
+// ng-src, ng-srcset, ng-href are interpolated
+forEach([&#039;src&#039;, &#039;srcset&#039;, &#039;href&#039;], function(attrName) {
+  var normalized = directiveNormalize(&#039;ng-&#039; + attrName);
+  ngAttributeAliasDirectives[normalized] = function() {
+    return {
+      priority: 99, // it needs to run after the attributes are interpolated
+      link: function(scope, element, attr) {
+        var propName = attrName,
+            name = attrName;
+
+        if (attrName === &#039;href&#039; &amp;&amp;
+            toString.call(element.prop(&#039;href&#039;)) === &#039;[object SVGAnimatedString]&#039;) {
+          name = &#039;xlinkHref&#039;;
+          attr.$attr[name] = &#039;xlink:href&#039;;
+          propName = null;
+        }
+
+        attr.$observe(normalized, function(value) {
+          if (!value) {
+            if (attrName === &#039;href&#039;) {
+              attr.$set(name, null);
+            }
+            return;
+          }
+
+          attr.$set(name, value);
+
+          // on IE, if &quot;ng:src&quot; directive declaration is used and &quot;src&quot; attribute doesn&#039;t exist
+          // then calling element.setAttribute(&#039;src&#039;, &#039;foo&#039;) doesn&#039;t do anything, so we need
+          // to set the property as well to achieve the desired effect.
+          // we use attr[attrName] value since $set can sanitize the url.
+          if (msie &amp;&amp; propName) element.prop(propName, attr[name]);
+        });
+      }
+    };
+  };
+});</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

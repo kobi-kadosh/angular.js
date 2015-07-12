@@ -1,0 +1,2028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - src\ng\parse.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>src\ng\parse.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">66.77</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">1911</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">204.65</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">27.09</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *     Any commits to this file should be reviewed with security in mind.  *
+ *   Changes to this file can potentially create security vulnerabilities. *
+ *          An approval from 2 Core members with history of modifying      *
+ *                         this file is required.                          *
+ *                                                                         *
+ *  Does the change somehow allow for arbitrary javascript to be executed? *
+ *    Or allows for someone to change the prototype of built-in objects?   *
+ *     Or gives undesired access to variables likes document or window?    *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var $parseMinErr = minErr(&#039;$parse&#039;);
+
+// Sandboxing Angular Expressions
+// ------------------------------
+// Angular expressions are generally considered safe because these expressions only have direct
+// access to `$scope` and locals. However, one can obtain the ability to execute arbitrary JS code by
+// obtaining a reference to native JS functions such as the Function constructor.
+//
+// As an example, consider the following Angular expression:
+//
+//   {}.toString.constructor(&#039;alert(&quot;evil JS code&quot;)&#039;)
+//
+// This sandboxing technique is not perfect and doesn&#039;t aim to be. The goal is to prevent exploits
+// against the expression language, but not to prevent exploits that were enabled by exposing
+// sensitive JavaScript or browser APIs on Scope. Exposing such objects on a Scope is never a good
+// practice and therefore we are not even trying to protect against interaction with an object
+// explicitly exposed in this way.
+//
+// In general, it is not possible to access a Window object from an angular expression unless a
+// window or some DOM object that has a reference to window is published onto a Scope.
+// Similarly we prevent invocations of function known to be dangerous, as well as assignments to
+// native objects.
+//
+// See https://docs.angularjs.org/guide/security
+
+
+function ensureSafeMemberName(name, fullExpression) {
+  if (name === &quot;__defineGetter__&quot; || name === &quot;__defineSetter__&quot;
+      || name === &quot;__lookupGetter__&quot; || name === &quot;__lookupSetter__&quot;
+      || name === &quot;__proto__&quot;) {
+    throw $parseMinErr(&#039;isecfld&#039;,
+        &#039;Attempting to access a disallowed field in Angular expressions! &#039;
+        + &#039;Expression: {0}&#039;, fullExpression);
+  }
+  return name;
+}
+
+function ensureSafeObject(obj, fullExpression) {
+  // nifty check if obj is Function that is fast and works across iframes and other contexts
+  if (obj) {
+    if (obj.constructor === obj) {
+      throw $parseMinErr(&#039;isecfn&#039;,
+          &#039;Referencing Function in Angular expressions is disallowed! Expression: {0}&#039;,
+          fullExpression);
+    } else if (// isWindow(obj)
+        obj.window === obj) {
+      throw $parseMinErr(&#039;isecwindow&#039;,
+          &#039;Referencing the Window in Angular expressions is disallowed! Expression: {0}&#039;,
+          fullExpression);
+    } else if (// isElement(obj)
+        obj.children &amp;&amp; (obj.nodeName || (obj.prop &amp;&amp; obj.attr &amp;&amp; obj.find))) {
+      throw $parseMinErr(&#039;isecdom&#039;,
+          &#039;Referencing DOM nodes in Angular expressions is disallowed! Expression: {0}&#039;,
+          fullExpression);
+    } else if (// block Object so that we can&#039;t get hold of dangerous Object.* methods
+        obj === Object) {
+      throw $parseMinErr(&#039;isecobj&#039;,
+          &#039;Referencing Object in Angular expressions is disallowed! Expression: {0}&#039;,
+          fullExpression);
+    }
+  }
+  return obj;
+}
+
+var CALL = Function.prototype.call;
+var APPLY = Function.prototype.apply;
+var BIND = Function.prototype.bind;
+
+function ensureSafeFunction(obj, fullExpression) {
+  if (obj) {
+    if (obj.constructor === obj) {
+      throw $parseMinErr(&#039;isecfn&#039;,
+        &#039;Referencing Function in Angular expressions is disallowed! Expression: {0}&#039;,
+        fullExpression);
+    } else if (obj === CALL || obj === APPLY || obj === BIND) {
+      throw $parseMinErr(&#039;isecff&#039;,
+        &#039;Referencing call, apply or bind in Angular expressions is disallowed! Expression: {0}&#039;,
+        fullExpression);
+    }
+  }
+}
+
+var OPERATORS = createMap();
+forEach(&#039;+ - * / % === !== == != &lt; &gt; &lt;= &gt;= &amp;&amp; || ! = |&#039;.split(&#039; &#039;), function(operator) { OPERATORS[operator] = true; });
+var ESCAPE = {&quot;n&quot;:&quot;\n&quot;, &quot;f&quot;:&quot;\f&quot;, &quot;r&quot;:&quot;\r&quot;, &quot;t&quot;:&quot;\t&quot;, &quot;v&quot;:&quot;\v&quot;, &quot;&#039;&quot;:&quot;&#039;&quot;, &#039;&quot;&#039;:&#039;&quot;&#039;};
+
+
+/////////////////////////////////////////
+
+
+/**
+ * @constructor
+ */
+var Lexer = function(options) {
+  this.options = options;
+};
+
+Lexer.prototype = {
+  constructor: Lexer,
+
+  lex: function(text) {
+    this.text = text;
+    this.index = 0;
+    this.tokens = [];
+
+    while (this.index &lt; this.text.length) {
+      var ch = this.text.charAt(this.index);
+      if (ch === &#039;&quot;&#039; || ch === &quot;&#039;&quot;) {
+        this.readString(ch);
+      } else if (this.isNumber(ch) || ch === &#039;.&#039; &amp;&amp; this.isNumber(this.peek())) {
+        this.readNumber();
+      } else if (this.isIdent(ch)) {
+        this.readIdent();
+      } else if (this.is(ch, &#039;(){}[].,;:?&#039;)) {
+        this.tokens.push({index: this.index, text: ch});
+        this.index++;
+      } else if (this.isWhitespace(ch)) {
+        this.index++;
+      } else {
+        var ch2 = ch + this.peek();
+        var ch3 = ch2 + this.peek(2);
+        var op1 = OPERATORS[ch];
+        var op2 = OPERATORS[ch2];
+        var op3 = OPERATORS[ch3];
+        if (op1 || op2 || op3) {
+          var token = op3 ? ch3 : (op2 ? ch2 : ch);
+          this.tokens.push({index: this.index, text: token, operator: true});
+          this.index += token.length;
+        } else {
+          this.throwError(&#039;Unexpected next character &#039;, this.index, this.index + 1);
+        }
+      }
+    }
+    return this.tokens;
+  },
+
+  is: function(ch, chars) {
+    return chars.indexOf(ch) !== -1;
+  },
+
+  peek: function(i) {
+    var num = i || 1;
+    return (this.index + num &lt; this.text.length) ? this.text.charAt(this.index + num) : false;
+  },
+
+  isNumber: function(ch) {
+    return (&#039;0&#039; &lt;= ch &amp;&amp; ch &lt;= &#039;9&#039;) &amp;&amp; typeof ch === &quot;string&quot;;
+  },
+
+  isWhitespace: function(ch) {
+    // IE treats non-breaking space as \u00A0
+    return (ch === &#039; &#039; || ch === &#039;\r&#039; || ch === &#039;\t&#039; ||
+            ch === &#039;\n&#039; || ch === &#039;\v&#039; || ch === &#039;\u00A0&#039;);
+  },
+
+  isIdent: function(ch) {
+    return (&#039;a&#039; &lt;= ch &amp;&amp; ch &lt;= &#039;z&#039; ||
+            &#039;A&#039; &lt;= ch &amp;&amp; ch &lt;= &#039;Z&#039; ||
+            &#039;_&#039; === ch || ch === &#039;$&#039;);
+  },
+
+  isExpOperator: function(ch) {
+    return (ch === &#039;-&#039; || ch === &#039;+&#039; || this.isNumber(ch));
+  },
+
+  throwError: function(error, start, end) {
+    end = end || this.index;
+    var colStr = (isDefined(start)
+            ? &#039;s &#039; + start +  &#039;-&#039; + this.index + &#039; [&#039; + this.text.substring(start, end) + &#039;]&#039;
+            : &#039; &#039; + end);
+    throw $parseMinErr(&#039;lexerr&#039;, &#039;Lexer Error: {0} at column{1} in expression [{2}].&#039;,
+        error, colStr, this.text);
+  },
+
+  readNumber: function() {
+    var number = &#039;&#039;;
+    var start = this.index;
+    while (this.index &lt; this.text.length) {
+      var ch = lowercase(this.text.charAt(this.index));
+      if (ch == &#039;.&#039; || this.isNumber(ch)) {
+        number += ch;
+      } else {
+        var peekCh = this.peek();
+        if (ch == &#039;e&#039; &amp;&amp; this.isExpOperator(peekCh)) {
+          number += ch;
+        } else if (this.isExpOperator(ch) &amp;&amp;
+            peekCh &amp;&amp; this.isNumber(peekCh) &amp;&amp;
+            number.charAt(number.length - 1) == &#039;e&#039;) {
+          number += ch;
+        } else if (this.isExpOperator(ch) &amp;&amp;
+            (!peekCh || !this.isNumber(peekCh)) &amp;&amp;
+            number.charAt(number.length - 1) == &#039;e&#039;) {
+          this.throwError(&#039;Invalid exponent&#039;);
+        } else {
+          break;
+        }
+      }
+      this.index++;
+    }
+    this.tokens.push({
+      index: start,
+      text: number,
+      constant: true,
+      value: Number(number)
+    });
+  },
+
+  readIdent: function() {
+    var start = this.index;
+    while (this.index &lt; this.text.length) {
+      var ch = this.text.charAt(this.index);
+      if (!(this.isIdent(ch) || this.isNumber(ch))) {
+        break;
+      }
+      this.index++;
+    }
+    this.tokens.push({
+      index: start,
+      text: this.text.slice(start, this.index),
+      identifier: true
+    });
+  },
+
+  readString: function(quote) {
+    var start = this.index;
+    this.index++;
+    var string = &#039;&#039;;
+    var rawString = quote;
+    var escape = false;
+    while (this.index &lt; this.text.length) {
+      var ch = this.text.charAt(this.index);
+      rawString += ch;
+      if (escape) {
+        if (ch === &#039;u&#039;) {
+          var hex = this.text.substring(this.index + 1, this.index + 5);
+          if (!hex.match(/[\da-f]{4}/i)) {
+            this.throwError(&#039;Invalid unicode escape [\\u&#039; + hex + &#039;]&#039;);
+          }
+          this.index += 4;
+          string += String.fromCharCode(parseInt(hex, 16));
+        } else {
+          var rep = ESCAPE[ch];
+          string = string + (rep || ch);
+        }
+        escape = false;
+      } else if (ch === &#039;\\&#039;) {
+        escape = true;
+      } else if (ch === quote) {
+        this.index++;
+        this.tokens.push({
+          index: start,
+          text: rawString,
+          constant: true,
+          value: string
+        });
+        return;
+      } else {
+        string += ch;
+      }
+      this.index++;
+    }
+    this.throwError(&#039;Unterminated quote&#039;, start);
+  }
+};
+
+var AST = function(lexer, options) {
+  this.lexer = lexer;
+  this.options = options;
+};
+
+AST.Program = &#039;Program&#039;;
+AST.ExpressionStatement = &#039;ExpressionStatement&#039;;
+AST.AssignmentExpression = &#039;AssignmentExpression&#039;;
+AST.ConditionalExpression = &#039;ConditionalExpression&#039;;
+AST.LogicalExpression = &#039;LogicalExpression&#039;;
+AST.BinaryExpression = &#039;BinaryExpression&#039;;
+AST.UnaryExpression = &#039;UnaryExpression&#039;;
+AST.CallExpression = &#039;CallExpression&#039;;
+AST.MemberExpression = &#039;MemberExpression&#039;;
+AST.Identifier = &#039;Identifier&#039;;
+AST.Literal = &#039;Literal&#039;;
+AST.ArrayExpression = &#039;ArrayExpression&#039;;
+AST.Property = &#039;Property&#039;;
+AST.ObjectExpression = &#039;ObjectExpression&#039;;
+AST.ThisExpression = &#039;ThisExpression&#039;;
+
+// Internal use only
+AST.NGValueParameter = &#039;NGValueParameter&#039;;
+
+AST.prototype = {
+  ast: function(text) {
+    this.text = text;
+    this.tokens = this.lexer.lex(text);
+
+    var value = this.program();
+
+    if (this.tokens.length !== 0) {
+      this.throwError(&#039;is an unexpected token&#039;, this.tokens[0]);
+    }
+
+    return value;
+  },
+
+  program: function() {
+    var body = [];
+    while (true) {
+      if (this.tokens.length &gt; 0 &amp;&amp; !this.peek(&#039;}&#039;, &#039;)&#039;, &#039;;&#039;, &#039;]&#039;))
+        body.push(this.expressionStatement());
+      if (!this.expect(&#039;;&#039;)) {
+        return { type: AST.Program, body: body};
+      }
+    }
+  },
+
+  expressionStatement: function() {
+    return { type: AST.ExpressionStatement, expression: this.filterChain() };
+  },
+
+  filterChain: function() {
+    var left = this.expression();
+    var token;
+    while ((token = this.expect(&#039;|&#039;))) {
+      left = this.filter(left);
+    }
+    return left;
+  },
+
+  expression: function() {
+    return this.assignment();
+  },
+
+  assignment: function() {
+    var result = this.ternary();
+    if (this.expect(&#039;=&#039;)) {
+      result = { type: AST.AssignmentExpression, left: result, right: this.assignment(), operator: &#039;=&#039;};
+    }
+    return result;
+  },
+
+  ternary: function() {
+    var test = this.logicalOR();
+    var alternate;
+    var consequent;
+    if (this.expect(&#039;?&#039;)) {
+      alternate = this.expression();
+      if (this.consume(&#039;:&#039;)) {
+        consequent = this.expression();
+        return { type: AST.ConditionalExpression, test: test, alternate: alternate, consequent: consequent};
+      }
+    }
+    return test;
+  },
+
+  logicalOR: function() {
+    var left = this.logicalAND();
+    while (this.expect(&#039;||&#039;)) {
+      left = { type: AST.LogicalExpression, operator: &#039;||&#039;, left: left, right: this.logicalAND() };
+    }
+    return left;
+  },
+
+  logicalAND: function() {
+    var left = this.equality();
+    while (this.expect(&#039;&amp;&amp;&#039;)) {
+      left = { type: AST.LogicalExpression, operator: &#039;&amp;&amp;&#039;, left: left, right: this.equality()};
+    }
+    return left;
+  },
+
+  equality: function() {
+    var left = this.relational();
+    var token;
+    while ((token = this.expect(&#039;==&#039;,&#039;!=&#039;,&#039;===&#039;,&#039;!==&#039;))) {
+      left = { type: AST.BinaryExpression, operator: token.text, left: left, right: this.relational() };
+    }
+    return left;
+  },
+
+  relational: function() {
+    var left = this.additive();
+    var token;
+    while ((token = this.expect(&#039;&lt;&#039;, &#039;&gt;&#039;, &#039;&lt;=&#039;, &#039;&gt;=&#039;))) {
+      left = { type: AST.BinaryExpression, operator: token.text, left: left, right: this.additive() };
+    }
+    return left;
+  },
+
+  additive: function() {
+    var left = this.multiplicative();
+    var token;
+    while ((token = this.expect(&#039;+&#039;,&#039;-&#039;))) {
+      left = { type: AST.BinaryExpression, operator: token.text, left: left, right: this.multiplicative() };
+    }
+    return left;
+  },
+
+  multiplicative: function() {
+    var left = this.unary();
+    var token;
+    while ((token = this.expect(&#039;*&#039;,&#039;/&#039;,&#039;%&#039;))) {
+      left = { type: AST.BinaryExpression, operator: token.text, left: left, right: this.unary() };
+    }
+    return left;
+  },
+
+  unary: function() {
+    var token;
+    if ((token = this.expect(&#039;+&#039;, &#039;-&#039;, &#039;!&#039;))) {
+      return { type: AST.UnaryExpression, operator: token.text, prefix: true, argument: this.unary() };
+    } else {
+      return this.primary();
+    }
+  },
+
+  primary: function() {
+    var primary;
+    if (this.expect(&#039;(&#039;)) {
+      primary = this.filterChain();
+      this.consume(&#039;)&#039;);
+    } else if (this.expect(&#039;[&#039;)) {
+      primary = this.arrayDeclaration();
+    } else if (this.expect(&#039;{&#039;)) {
+      primary = this.object();
+    } else if (this.constants.hasOwnProperty(this.peek().text)) {
+      primary = copy(this.constants[this.consume().text]);
+    } else if (this.peek().identifier) {
+      primary = this.identifier();
+    } else if (this.peek().constant) {
+      primary = this.constant();
+    } else {
+      this.throwError(&#039;not a primary expression&#039;, this.peek());
+    }
+
+    var next;
+    while ((next = this.expect(&#039;(&#039;, &#039;[&#039;, &#039;.&#039;))) {
+      if (next.text === &#039;(&#039;) {
+        primary = {type: AST.CallExpression, callee: primary, arguments: this.parseArguments() };
+        this.consume(&#039;)&#039;);
+      } else if (next.text === &#039;[&#039;) {
+        primary = { type: AST.MemberExpression, object: primary, property: this.expression(), computed: true };
+        this.consume(&#039;]&#039;);
+      } else if (next.text === &#039;.&#039;) {
+        primary = { type: AST.MemberExpression, object: primary, property: this.identifier(), computed: false };
+      } else {
+        this.throwError(&#039;IMPOSSIBLE&#039;);
+      }
+    }
+    return primary;
+  },
+
+  filter: function(baseExpression) {
+    var args = [baseExpression];
+    var result = {type: AST.CallExpression, callee: this.identifier(), arguments: args, filter: true};
+
+    while (this.expect(&#039;:&#039;)) {
+      args.push(this.expression());
+    }
+
+    return result;
+  },
+
+  parseArguments: function() {
+    var args = [];
+    if (this.peekToken().text !== &#039;)&#039;) {
+      do {
+        args.push(this.expression());
+      } while (this.expect(&#039;,&#039;));
+    }
+    return args;
+  },
+
+  identifier: function() {
+    var token = this.consume();
+    if (!token.identifier) {
+      this.throwError(&#039;is not a valid identifier&#039;, token);
+    }
+    return { type: AST.Identifier, name: token.text };
+  },
+
+  constant: function() {
+    // TODO check that it is a constant
+    return { type: AST.Literal, value: this.consume().value };
+  },
+
+  arrayDeclaration: function() {
+    var elements = [];
+    if (this.peekToken().text !== &#039;]&#039;) {
+      do {
+        if (this.peek(&#039;]&#039;)) {
+          // Support trailing commas per ES5.1.
+          break;
+        }
+        elements.push(this.expression());
+      } while (this.expect(&#039;,&#039;));
+    }
+    this.consume(&#039;]&#039;);
+
+    return { type: AST.ArrayExpression, elements: elements };
+  },
+
+  object: function() {
+    var properties = [], property;
+    if (this.peekToken().text !== &#039;}&#039;) {
+      do {
+        if (this.peek(&#039;}&#039;)) {
+          // Support trailing commas per ES5.1.
+          break;
+        }
+        property = {type: AST.Property, kind: &#039;init&#039;};
+        if (this.peek().constant) {
+          property.key = this.constant();
+        } else if (this.peek().identifier) {
+          property.key = this.identifier();
+        } else {
+          this.throwError(&quot;invalid key&quot;, this.peek());
+        }
+        this.consume(&#039;:&#039;);
+        property.value = this.expression();
+        properties.push(property);
+      } while (this.expect(&#039;,&#039;));
+    }
+    this.consume(&#039;}&#039;);
+
+    return {type: AST.ObjectExpression, properties: properties };
+  },
+
+  throwError: function(msg, token) {
+    throw $parseMinErr(&#039;syntax&#039;,
+        &#039;Syntax Error: Token \&#039;{0}\&#039; {1} at column {2} of the expression [{3}] starting at [{4}].&#039;,
+          token.text, msg, (token.index + 1), this.text, this.text.substring(token.index));
+  },
+
+  consume: function(e1) {
+    if (this.tokens.length === 0) {
+      throw $parseMinErr(&#039;ueoe&#039;, &#039;Unexpected end of expression: {0}&#039;, this.text);
+    }
+
+    var token = this.expect(e1);
+    if (!token) {
+      this.throwError(&#039;is unexpected, expecting [&#039; + e1 + &#039;]&#039;, this.peek());
+    }
+    return token;
+  },
+
+  peekToken: function() {
+    if (this.tokens.length === 0) {
+      throw $parseMinErr(&#039;ueoe&#039;, &#039;Unexpected end of expression: {0}&#039;, this.text);
+    }
+    return this.tokens[0];
+  },
+
+  peek: function(e1, e2, e3, e4) {
+    return this.peekAhead(0, e1, e2, e3, e4);
+  },
+
+  peekAhead: function(i, e1, e2, e3, e4) {
+    if (this.tokens.length &gt; i) {
+      var token = this.tokens[i];
+      var t = token.text;
+      if (t === e1 || t === e2 || t === e3 || t === e4 ||
+          (!e1 &amp;&amp; !e2 &amp;&amp; !e3 &amp;&amp; !e4)) {
+        return token;
+      }
+    }
+    return false;
+  },
+
+  expect: function(e1, e2, e3, e4) {
+    var token = this.peek(e1, e2, e3, e4);
+    if (token) {
+      this.tokens.shift();
+      return token;
+    }
+    return false;
+  },
+
+
+  /* `undefined` is not a constant, it is an identifier,
+   * but using it as an identifier is not supported
+   */
+  constants: {
+    &#039;true&#039;: { type: AST.Literal, value: true },
+    &#039;false&#039;: { type: AST.Literal, value: false },
+    &#039;null&#039;: { type: AST.Literal, value: null },
+    &#039;undefined&#039;: {type: AST.Literal, value: undefined },
+    &#039;this&#039;: {type: AST.ThisExpression }
+  }
+};
+
+function ifDefined(v, d) {
+  return typeof v !== &#039;undefined&#039; ? v : d;
+}
+
+function plusFn(l, r) {
+  if (typeof l === &#039;undefined&#039;) return r;
+  if (typeof r === &#039;undefined&#039;) return l;
+  return l + r;
+}
+
+function isStateless($filter, filterName) {
+  var fn = $filter(filterName);
+  return !fn.$stateful;
+}
+
+function findConstantAndWatchExpressions(ast, $filter) {
+  var allConstants;
+  var argsToWatch;
+  switch (ast.type) {
+  case AST.Program:
+    allConstants = true;
+    forEach(ast.body, function(expr) {
+      findConstantAndWatchExpressions(expr.expression, $filter);
+      allConstants = allConstants &amp;&amp; expr.expression.constant;
+    });
+    ast.constant = allConstants;
+    break;
+  case AST.Literal:
+    ast.constant = true;
+    ast.toWatch = [];
+    break;
+  case AST.UnaryExpression:
+    findConstantAndWatchExpressions(ast.argument, $filter);
+    ast.constant = ast.argument.constant;
+    ast.toWatch = ast.argument.toWatch;
+    break;
+  case AST.BinaryExpression:
+    findConstantAndWatchExpressions(ast.left, $filter);
+    findConstantAndWatchExpressions(ast.right, $filter);
+    ast.constant = ast.left.constant &amp;&amp; ast.right.constant;
+    ast.toWatch = ast.left.toWatch.concat(ast.right.toWatch);
+    break;
+  case AST.LogicalExpression:
+    findConstantAndWatchExpressions(ast.left, $filter);
+    findConstantAndWatchExpressions(ast.right, $filter);
+    ast.constant = ast.left.constant &amp;&amp; ast.right.constant;
+    ast.toWatch = ast.constant ? [] : [ast];
+    break;
+  case AST.ConditionalExpression:
+    findConstantAndWatchExpressions(ast.test, $filter);
+    findConstantAndWatchExpressions(ast.alternate, $filter);
+    findConstantAndWatchExpressions(ast.consequent, $filter);
+    ast.constant = ast.test.constant &amp;&amp; ast.alternate.constant &amp;&amp; ast.consequent.constant;
+    ast.toWatch = ast.constant ? [] : [ast];
+    break;
+  case AST.Identifier:
+    ast.constant = false;
+    ast.toWatch = [ast];
+    break;
+  case AST.MemberExpression:
+    findConstantAndWatchExpressions(ast.object, $filter);
+    if (ast.computed) {
+      findConstantAndWatchExpressions(ast.property, $filter);
+    }
+    ast.constant = ast.object.constant &amp;&amp; (!ast.computed || ast.property.constant);
+    ast.toWatch = [ast];
+    break;
+  case AST.CallExpression:
+    allConstants = ast.filter ? isStateless($filter, ast.callee.name) : false;
+    argsToWatch = [];
+    forEach(ast.arguments, function(expr) {
+      findConstantAndWatchExpressions(expr, $filter);
+      allConstants = allConstants &amp;&amp; expr.constant;
+      if (!expr.constant) {
+        argsToWatch.push.apply(argsToWatch, expr.toWatch);
+      }
+    });
+    ast.constant = allConstants;
+    ast.toWatch = ast.filter &amp;&amp; isStateless($filter, ast.callee.name) ? argsToWatch : [ast];
+    break;
+  case AST.AssignmentExpression:
+    findConstantAndWatchExpressions(ast.left, $filter);
+    findConstantAndWatchExpressions(ast.right, $filter);
+    ast.constant = ast.left.constant &amp;&amp; ast.right.constant;
+    ast.toWatch = [ast];
+    break;
+  case AST.ArrayExpression:
+    allConstants = true;
+    argsToWatch = [];
+    forEach(ast.elements, function(expr) {
+      findConstantAndWatchExpressions(expr, $filter);
+      allConstants = allConstants &amp;&amp; expr.constant;
+      if (!expr.constant) {
+        argsToWatch.push.apply(argsToWatch, expr.toWatch);
+      }
+    });
+    ast.constant = allConstants;
+    ast.toWatch = argsToWatch;
+    break;
+  case AST.ObjectExpression:
+    allConstants = true;
+    argsToWatch = [];
+    forEach(ast.properties, function(property) {
+      findConstantAndWatchExpressions(property.value, $filter);
+      allConstants = allConstants &amp;&amp; property.value.constant;
+      if (!property.value.constant) {
+        argsToWatch.push.apply(argsToWatch, property.value.toWatch);
+      }
+    });
+    ast.constant = allConstants;
+    ast.toWatch = argsToWatch;
+    break;
+  case AST.ThisExpression:
+    ast.constant = false;
+    ast.toWatch = [];
+    break;
+  }
+}
+
+function getInputs(body) {
+  if (body.length != 1) return;
+  var lastExpression = body[0].expression;
+  var candidate = lastExpression.toWatch;
+  if (candidate.length !== 1) return candidate;
+  return candidate[0] !== lastExpression ? candidate : undefined;
+}
+
+function isAssignable(ast) {
+  return ast.type === AST.Identifier || ast.type === AST.MemberExpression;
+}
+
+function assignableAST(ast) {
+  if (ast.body.length === 1 &amp;&amp; isAssignable(ast.body[0].expression)) {
+    return {type: AST.AssignmentExpression, left: ast.body[0].expression, right: {type: AST.NGValueParameter}, operator: &#039;=&#039;};
+  }
+}
+
+function isLiteral(ast) {
+  return ast.body.length === 0 ||
+      ast.body.length === 1 &amp;&amp; (
+      ast.body[0].expression.type === AST.Literal ||
+      ast.body[0].expression.type === AST.ArrayExpression ||
+      ast.body[0].expression.type === AST.ObjectExpression);
+}
+
+function isConstant(ast) {
+  return ast.constant;
+}
+
+function ASTCompiler(astBuilder, $filter) {
+  this.astBuilder = astBuilder;
+  this.$filter = $filter;
+}
+
+ASTCompiler.prototype = {
+  compile: function(expression, expensiveChecks) {
+    var self = this;
+    var ast = this.astBuilder.ast(expression);
+    this.state = {
+      nextId: 0,
+      filters: {},
+      expensiveChecks: expensiveChecks,
+      fn: {vars: [], body: [], own: {}},
+      assign: {vars: [], body: [], own: {}},
+      inputs: []
+    };
+    findConstantAndWatchExpressions(ast, self.$filter);
+    var extra = &#039;&#039;;
+    var assignable;
+    this.stage = &#039;assign&#039;;
+    if ((assignable = assignableAST(ast))) {
+      this.state.computing = &#039;assign&#039;;
+      var result = this.nextId();
+      this.recurse(assignable, result);
+      extra = &#039;fn.assign=&#039; + this.generateFunction(&#039;assign&#039;, &#039;s,v,l&#039;);
+    }
+    var toWatch = getInputs(ast.body);
+    self.stage = &#039;inputs&#039;;
+    forEach(toWatch, function(watch, key) {
+      var fnKey = &#039;fn&#039; + key;
+      self.state[fnKey] = {vars: [], body: [], own: {}};
+      self.state.computing = fnKey;
+      var intoId = self.nextId();
+      self.recurse(watch, intoId);
+      self.return_(intoId);
+      self.state.inputs.push(fnKey);
+      watch.watchId = key;
+    });
+    this.state.computing = &#039;fn&#039;;
+    this.stage = &#039;main&#039;;
+    this.recurse(ast);
+    var fnString =
+      // The build and minification steps remove the string &quot;use strict&quot; from the code, but this is done using a regex.
+      // This is a workaround for this until we do a better job at only removing the prefix only when we should.
+      &#039;&quot;&#039; + this.USE + &#039; &#039; + this.STRICT + &#039;&quot;;\n&#039; +
+      this.filterPrefix() +
+      &#039;var fn=&#039; + this.generateFunction(&#039;fn&#039;, &#039;s,l,a,i&#039;) +
+      extra +
+      this.watchFns() +
+      &#039;return fn;&#039;;
+
+    /* jshint -W054 */
+    var fn = (new Function(&#039;$filter&#039;,
+        &#039;ensureSafeMemberName&#039;,
+        &#039;ensureSafeObject&#039;,
+        &#039;ensureSafeFunction&#039;,
+        &#039;ifDefined&#039;,
+        &#039;plus&#039;,
+        &#039;text&#039;,
+        fnString))(
+          this.$filter,
+          ensureSafeMemberName,
+          ensureSafeObject,
+          ensureSafeFunction,
+          ifDefined,
+          plusFn,
+          expression);
+    /* jshint +W054 */
+    this.state = this.stage = undefined;
+    fn.literal = isLiteral(ast);
+    fn.constant = isConstant(ast);
+    return fn;
+  },
+
+  USE: &#039;use&#039;,
+
+  STRICT: &#039;strict&#039;,
+
+  watchFns: function() {
+    var result = [];
+    var fns = this.state.inputs;
+    var self = this;
+    forEach(fns, function(name) {
+      result.push(&#039;var &#039; + name + &#039;=&#039; + self.generateFunction(name, &#039;s&#039;));
+    });
+    if (fns.length) {
+      result.push(&#039;fn.inputs=[&#039; + fns.join(&#039;,&#039;) + &#039;];&#039;);
+    }
+    return result.join(&#039;&#039;);
+  },
+
+  generateFunction: function(name, params) {
+    return &#039;function(&#039; + params + &#039;){&#039; +
+        this.varsPrefix(name) +
+        this.body(name) +
+        &#039;};&#039;;
+  },
+
+  filterPrefix: function() {
+    var parts = [];
+    var self = this;
+    forEach(this.state.filters, function(id, filter) {
+      parts.push(id + &#039;=$filter(&#039; + self.escape(filter) + &#039;)&#039;);
+    });
+    if (parts.length) return &#039;var &#039; + parts.join(&#039;,&#039;) + &#039;;&#039;;
+    return &#039;&#039;;
+  },
+
+  varsPrefix: function(section) {
+    return this.state[section].vars.length ? &#039;var &#039; + this.state[section].vars.join(&#039;,&#039;) + &#039;;&#039; : &#039;&#039;;
+  },
+
+  body: function(section) {
+    return this.state[section].body.join(&#039;&#039;);
+  },
+
+  recurse: function(ast, intoId, nameId, recursionFn, create, skipWatchIdCheck) {
+    var left, right, self = this, args, expression;
+    recursionFn = recursionFn || noop;
+    if (!skipWatchIdCheck &amp;&amp; isDefined(ast.watchId)) {
+      intoId = intoId || this.nextId();
+      this.if_(&#039;i&#039;,
+        this.lazyAssign(intoId, this.computedMember(&#039;i&#039;, ast.watchId)),
+        this.lazyRecurse(ast, intoId, nameId, recursionFn, create, true)
+      );
+      return;
+    }
+    switch (ast.type) {
+    case AST.Program:
+      forEach(ast.body, function(expression, pos) {
+        self.recurse(expression.expression, undefined, undefined, function(expr) { right = expr; });
+        if (pos !== ast.body.length - 1) {
+          self.current().body.push(right, &#039;;&#039;);
+        } else {
+          self.return_(right);
+        }
+      });
+      break;
+    case AST.Literal:
+      expression = this.escape(ast.value);
+      this.assign(intoId, expression);
+      recursionFn(expression);
+      break;
+    case AST.UnaryExpression:
+      this.recurse(ast.argument, undefined, undefined, function(expr) { right = expr; });
+      expression = ast.operator + &#039;(&#039; + this.ifDefined(right, 0) + &#039;)&#039;;
+      this.assign(intoId, expression);
+      recursionFn(expression);
+      break;
+    case AST.BinaryExpression:
+      this.recurse(ast.left, undefined, undefined, function(expr) { left = expr; });
+      this.recurse(ast.right, undefined, undefined, function(expr) { right = expr; });
+      if (ast.operator === &#039;+&#039;) {
+        expression = this.plus(left, right);
+      } else if (ast.operator === &#039;-&#039;) {
+        expression = this.ifDefined(left, 0) + ast.operator + this.ifDefined(right, 0);
+      } else {
+        expression = &#039;(&#039; + left + &#039;)&#039; + ast.operator + &#039;(&#039; + right + &#039;)&#039;;
+      }
+      this.assign(intoId, expression);
+      recursionFn(expression);
+      break;
+    case AST.LogicalExpression:
+      intoId = intoId || this.nextId();
+      self.recurse(ast.left, intoId);
+      self.if_(ast.operator === &#039;&amp;&amp;&#039; ? intoId : self.not(intoId), self.lazyRecurse(ast.right, intoId));
+      recursionFn(intoId);
+      break;
+    case AST.ConditionalExpression:
+      intoId = intoId || this.nextId();
+      self.recurse(ast.test, intoId);
+      self.if_(intoId, self.lazyRecurse(ast.alternate, intoId), self.lazyRecurse(ast.consequent, intoId));
+      recursionFn(intoId);
+      break;
+    case AST.Identifier:
+      intoId = intoId || this.nextId();
+      if (nameId) {
+        nameId.context = self.stage === &#039;inputs&#039; ? &#039;s&#039; : this.assign(this.nextId(), this.getHasOwnProperty(&#039;l&#039;, ast.name) + &#039;?l:s&#039;);
+        nameId.computed = false;
+        nameId.name = ast.name;
+      }
+      ensureSafeMemberName(ast.name);
+      self.if_(self.stage === &#039;inputs&#039; || self.not(self.getHasOwnProperty(&#039;l&#039;, ast.name)),
+        function() {
+          self.if_(self.stage === &#039;inputs&#039; || &#039;s&#039;, function() {
+            if (create &amp;&amp; create !== 1) {
+              self.if_(
+                self.not(self.nonComputedMember(&#039;s&#039;, ast.name)),
+                self.lazyAssign(self.nonComputedMember(&#039;s&#039;, ast.name), &#039;{}&#039;));
+            }
+            self.assign(intoId, self.nonComputedMember(&#039;s&#039;, ast.name));
+          });
+        }, intoId &amp;&amp; self.lazyAssign(intoId, self.nonComputedMember(&#039;l&#039;, ast.name))
+        );
+      if (self.state.expensiveChecks || isPossiblyDangerousMemberName(ast.name)) {
+        self.addEnsureSafeObject(intoId);
+      }
+      recursionFn(intoId);
+      break;
+    case AST.MemberExpression:
+      left = nameId &amp;&amp; (nameId.context = this.nextId()) || this.nextId();
+      intoId = intoId || this.nextId();
+      self.recurse(ast.object, left, undefined, function() {
+        self.if_(self.notNull(left), function() {
+          if (ast.computed) {
+            right = self.nextId();
+            self.recurse(ast.property, right);
+            self.addEnsureSafeMemberName(right);
+            if (create &amp;&amp; create !== 1) {
+              self.if_(self.not(self.computedMember(left, right)), self.lazyAssign(self.computedMember(left, right), &#039;{}&#039;));
+            }
+            expression = self.ensureSafeObject(self.computedMember(left, right));
+            self.assign(intoId, expression);
+            if (nameId) {
+              nameId.computed = true;
+              nameId.name = right;
+            }
+          } else {
+            ensureSafeMemberName(ast.property.name);
+            if (create &amp;&amp; create !== 1) {
+              self.if_(self.not(self.nonComputedMember(left, ast.property.name)), self.lazyAssign(self.nonComputedMember(left, ast.property.name), &#039;{}&#039;));
+            }
+            expression = self.nonComputedMember(left, ast.property.name);
+            if (self.state.expensiveChecks || isPossiblyDangerousMemberName(ast.property.name)) {
+              expression = self.ensureSafeObject(expression);
+            }
+            self.assign(intoId, expression);
+            if (nameId) {
+              nameId.computed = false;
+              nameId.name = ast.property.name;
+            }
+          }
+        }, function() {
+          self.assign(intoId, &#039;undefined&#039;);
+        });
+        recursionFn(intoId);
+      }, !!create);
+      break;
+    case AST.CallExpression:
+      intoId = intoId || this.nextId();
+      if (ast.filter) {
+        right = self.filter(ast.callee.name);
+        args = [];
+        forEach(ast.arguments, function(expr) {
+          var argument = self.nextId();
+          self.recurse(expr, argument);
+          args.push(argument);
+        });
+        expression = right + &#039;(&#039; + args.join(&#039;,&#039;) + &#039;)&#039;;
+        self.assign(intoId, expression);
+        recursionFn(intoId);
+      } else {
+        right = self.nextId();
+        left = {};
+        args = [];
+        self.recurse(ast.callee, right, left, function() {
+          self.if_(self.notNull(right), function() {
+            self.addEnsureSafeFunction(right);
+            forEach(ast.arguments, function(expr) {
+              self.recurse(expr, self.nextId(), undefined, function(argument) {
+                args.push(self.ensureSafeObject(argument));
+              });
+            });
+            if (left.name) {
+              if (!self.state.expensiveChecks) {
+                self.addEnsureSafeObject(left.context);
+              }
+              expression = self.member(left.context, left.name, left.computed) + &#039;(&#039; + args.join(&#039;,&#039;) + &#039;)&#039;;
+            } else {
+              expression = right + &#039;(&#039; + args.join(&#039;,&#039;) + &#039;)&#039;;
+            }
+            expression = self.ensureSafeObject(expression);
+            self.assign(intoId, expression);
+          }, function() {
+            self.assign(intoId, &#039;undefined&#039;);
+          });
+          recursionFn(intoId);
+        });
+      }
+      break;
+    case AST.AssignmentExpression:
+      right = this.nextId();
+      left = {};
+      if (!isAssignable(ast.left)) {
+        throw $parseMinErr(&#039;lval&#039;, &#039;Trying to assing a value to a non l-value&#039;);
+      }
+      this.recurse(ast.left, undefined, left, function() {
+        self.if_(self.notNull(left.context), function() {
+          self.recurse(ast.right, right);
+          self.addEnsureSafeObject(self.member(left.context, left.name, left.computed));
+          expression = self.member(left.context, left.name, left.computed) + ast.operator + right;
+          self.assign(intoId, expression);
+          recursionFn(intoId || expression);
+        });
+      }, 1);
+      break;
+    case AST.ArrayExpression:
+      args = [];
+      forEach(ast.elements, function(expr) {
+        self.recurse(expr, self.nextId(), undefined, function(argument) {
+          args.push(argument);
+        });
+      });
+      expression = &#039;[&#039; + args.join(&#039;,&#039;) + &#039;]&#039;;
+      this.assign(intoId, expression);
+      recursionFn(expression);
+      break;
+    case AST.ObjectExpression:
+      args = [];
+      forEach(ast.properties, function(property) {
+        self.recurse(property.value, self.nextId(), undefined, function(expr) {
+          args.push(self.escape(
+              property.key.type === AST.Identifier ? property.key.name :
+                (&#039;&#039; + property.key.value)) +
+              &#039;:&#039; + expr);
+        });
+      });
+      expression = &#039;{&#039; + args.join(&#039;,&#039;) + &#039;}&#039;;
+      this.assign(intoId, expression);
+      recursionFn(expression);
+      break;
+    case AST.ThisExpression:
+      this.assign(intoId, &#039;s&#039;);
+      recursionFn(&#039;s&#039;);
+      break;
+    case AST.NGValueParameter:
+      this.assign(intoId, &#039;v&#039;);
+      recursionFn(&#039;v&#039;);
+      break;
+    }
+  },
+
+  getHasOwnProperty: function(element, property) {
+    var key = element + &#039;.&#039; + property;
+    var own = this.current().own;
+    if (!own.hasOwnProperty(key)) {
+      own[key] = this.nextId(false, element + &#039;&amp;&amp;(&#039; + this.escape(property) + &#039; in &#039; + element + &#039;)&#039;);
+    }
+    return own[key];
+  },
+
+  assign: function(id, value) {
+    if (!id) return;
+    this.current().body.push(id, &#039;=&#039;, value, &#039;;&#039;);
+    return id;
+  },
+
+  filter: function(filterName) {
+    if (!this.state.filters.hasOwnProperty(filterName)) {
+      this.state.filters[filterName] = this.nextId(true);
+    }
+    return this.state.filters[filterName];
+  },
+
+  ifDefined: function(id, defaultValue) {
+    return &#039;ifDefined(&#039; + id + &#039;,&#039; + this.escape(defaultValue) + &#039;)&#039;;
+  },
+
+  plus: function(left, right) {
+    return &#039;plus(&#039; + left + &#039;,&#039; + right + &#039;)&#039;;
+  },
+
+  return_: function(id) {
+    this.current().body.push(&#039;return &#039;, id, &#039;;&#039;);
+  },
+
+  if_: function(test, alternate, consequent) {
+    if (test === true) {
+      alternate();
+    } else {
+      var body = this.current().body;
+      body.push(&#039;if(&#039;, test, &#039;){&#039;);
+      alternate();
+      body.push(&#039;}&#039;);
+      if (consequent) {
+        body.push(&#039;else{&#039;);
+        consequent();
+        body.push(&#039;}&#039;);
+      }
+    }
+  },
+
+  not: function(expression) {
+    return &#039;!(&#039; + expression + &#039;)&#039;;
+  },
+
+  notNull: function(expression) {
+    return expression + &#039;!=null&#039;;
+  },
+
+  nonComputedMember: function(left, right) {
+    return left + &#039;.&#039; + right;
+  },
+
+  computedMember: function(left, right) {
+    return left + &#039;[&#039; + right + &#039;]&#039;;
+  },
+
+  member: function(left, right, computed) {
+    if (computed) return this.computedMember(left, right);
+    return this.nonComputedMember(left, right);
+  },
+
+  addEnsureSafeObject: function(item) {
+    this.current().body.push(this.ensureSafeObject(item), &#039;;&#039;);
+  },
+
+  addEnsureSafeMemberName: function(item) {
+    this.current().body.push(this.ensureSafeMemberName(item), &#039;;&#039;);
+  },
+
+  addEnsureSafeFunction: function(item) {
+    this.current().body.push(this.ensureSafeFunction(item), &#039;;&#039;);
+  },
+
+  ensureSafeObject: function(item) {
+    return &#039;ensureSafeObject(&#039; + item + &#039;,text)&#039;;
+  },
+
+  ensureSafeMemberName: function(item) {
+    return &#039;ensureSafeMemberName(&#039; + item + &#039;,text)&#039;;
+  },
+
+  ensureSafeFunction: function(item) {
+    return &#039;ensureSafeFunction(&#039; + item + &#039;,text)&#039;;
+  },
+
+  lazyRecurse: function(ast, intoId, nameId, recursionFn, create, skipWatchIdCheck) {
+    var self = this;
+    return function() {
+      self.recurse(ast, intoId, nameId, recursionFn, create, skipWatchIdCheck);
+    };
+  },
+
+  lazyAssign: function(id, value) {
+    var self = this;
+    return function() {
+      self.assign(id, value);
+    };
+  },
+
+  stringEscapeRegex: /[^ a-zA-Z0-9]/g,
+
+  stringEscapeFn: function(c) {
+    return &#039;\\u&#039; + (&#039;0000&#039; + c.charCodeAt(0).toString(16)).slice(-4);
+  },
+
+  escape: function(value) {
+    if (isString(value)) return &quot;&#039;&quot; + value.replace(this.stringEscapeRegex, this.stringEscapeFn) + &quot;&#039;&quot;;
+    if (isNumber(value)) return value.toString();
+    if (value === true) return &#039;true&#039;;
+    if (value === false) return &#039;false&#039;;
+    if (value === null) return &#039;null&#039;;
+    if (typeof value === &#039;undefined&#039;) return &#039;undefined&#039;;
+
+    throw $parseMinErr(&#039;esc&#039;, &#039;IMPOSSIBLE&#039;);
+  },
+
+  nextId: function(skip, init) {
+    var id = &#039;v&#039; + (this.state.nextId++);
+    if (!skip) {
+      this.current().vars.push(id + (init ? &#039;=&#039; + init : &#039;&#039;));
+    }
+    return id;
+  },
+
+  current: function() {
+    return this.state[this.state.computing];
+  }
+};
+
+
+function ASTInterpreter(astBuilder, $filter) {
+  this.astBuilder = astBuilder;
+  this.$filter = $filter;
+}
+
+ASTInterpreter.prototype = {
+  compile: function(expression, expensiveChecks) {
+    var self = this;
+    var ast = this.astBuilder.ast(expression);
+    this.expression = expression;
+    this.expensiveChecks = expensiveChecks;
+    findConstantAndWatchExpressions(ast, self.$filter);
+    var assignable;
+    var assign;
+    if ((assignable = assignableAST(ast))) {
+      assign = this.recurse(assignable);
+    }
+    var toWatch = getInputs(ast.body);
+    var inputs;
+    if (toWatch) {
+      inputs = [];
+      forEach(toWatch, function(watch, key) {
+        var input = self.recurse(watch);
+        watch.input = input;
+        inputs.push(input);
+        watch.watchId = key;
+      });
+    }
+    var expressions = [];
+    forEach(ast.body, function(expression) {
+      expressions.push(self.recurse(expression.expression));
+    });
+    var fn = ast.body.length === 0 ? function() {} :
+             ast.body.length === 1 ? expressions[0] :
+             function(scope, locals) {
+               var lastValue;
+               forEach(expressions, function(exp) {
+                 lastValue = exp(scope, locals);
+               });
+               return lastValue;
+             };
+    if (assign) {
+      fn.assign = function(scope, value, locals) {
+        return assign(scope, locals, value);
+      };
+    }
+    if (inputs) {
+      fn.inputs = inputs;
+    }
+    fn.literal = isLiteral(ast);
+    fn.constant = isConstant(ast);
+    return fn;
+  },
+
+  recurse: function(ast, context, create) {
+    var left, right, self = this, args, expression;
+    if (ast.input) {
+      return this.inputs(ast.input, ast.watchId);
+    }
+    switch (ast.type) {
+    case AST.Literal:
+      return this.value(ast.value, context);
+    case AST.UnaryExpression:
+      right = this.recurse(ast.argument);
+      return this[&#039;unary&#039; + ast.operator](right, context);
+    case AST.BinaryExpression:
+      left = this.recurse(ast.left);
+      right = this.recurse(ast.right);
+      return this[&#039;binary&#039; + ast.operator](left, right, context);
+    case AST.LogicalExpression:
+      left = this.recurse(ast.left);
+      right = this.recurse(ast.right);
+      return this[&#039;binary&#039; + ast.operator](left, right, context);
+    case AST.ConditionalExpression:
+      return this[&#039;ternary?:&#039;](
+        this.recurse(ast.test),
+        this.recurse(ast.alternate),
+        this.recurse(ast.consequent),
+        context
+      );
+    case AST.Identifier:
+      ensureSafeMemberName(ast.name, self.expression);
+      return self.identifier(ast.name,
+                             self.expensiveChecks || isPossiblyDangerousMemberName(ast.name),
+                             context, create, self.expression);
+    case AST.MemberExpression:
+      left = this.recurse(ast.object, false, !!create);
+      if (!ast.computed) {
+        ensureSafeMemberName(ast.property.name, self.expression);
+        right = ast.property.name;
+      }
+      if (ast.computed) right = this.recurse(ast.property);
+      return ast.computed ?
+        this.computedMember(left, right, context, create, self.expression) :
+        this.nonComputedMember(left, right, self.expensiveChecks, context, create, self.expression);
+    case AST.CallExpression:
+      args = [];
+      forEach(ast.arguments, function(expr) {
+        args.push(self.recurse(expr));
+      });
+      if (ast.filter) right = this.$filter(ast.callee.name);
+      if (!ast.filter) right = this.recurse(ast.callee, true);
+      return ast.filter ?
+        function(scope, locals, assign, inputs) {
+          var values = [];
+          for (var i = 0; i &lt; args.length; ++i) {
+            values.push(args[i](scope, locals, assign, inputs));
+          }
+          var value = right.apply(undefined, values, inputs);
+          return context ? {context: undefined, name: undefined, value: value} : value;
+        } :
+        function(scope, locals, assign, inputs) {
+          var rhs = right(scope, locals, assign, inputs);
+          var value;
+          if (rhs.value != null) {
+            ensureSafeObject(rhs.context, self.expression);
+            ensureSafeFunction(rhs.value, self.expression);
+            var values = [];
+            for (var i = 0; i &lt; args.length; ++i) {
+              values.push(ensureSafeObject(args[i](scope, locals, assign, inputs), self.expression));
+            }
+            value = ensureSafeObject(rhs.value.apply(rhs.context, values), self.expression);
+          }
+          return context ? {value: value} : value;
+        };
+    case AST.AssignmentExpression:
+      left = this.recurse(ast.left, true, 1);
+      right = this.recurse(ast.right);
+      return function(scope, locals, assign, inputs) {
+        var lhs = left(scope, locals, assign, inputs);
+        var rhs = right(scope, locals, assign, inputs);
+        ensureSafeObject(lhs.value, self.expression);
+        lhs.context[lhs.name] = rhs;
+        return context ? {value: rhs} : rhs;
+      };
+    case AST.ArrayExpression:
+      args = [];
+      forEach(ast.elements, function(expr) {
+        args.push(self.recurse(expr));
+      });
+      return function(scope, locals, assign, inputs) {
+        var value = [];
+        for (var i = 0; i &lt; args.length; ++i) {
+          value.push(args[i](scope, locals, assign, inputs));
+        }
+        return context ? {value: value} : value;
+      };
+    case AST.ObjectExpression:
+      args = [];
+      forEach(ast.properties, function(property) {
+        args.push({key: property.key.type === AST.Identifier ?
+                        property.key.name :
+                        (&#039;&#039; + property.key.value),
+                   value: self.recurse(property.value)
+        });
+      });
+      return function(scope, locals, assign, inputs) {
+        var value = {};
+        for (var i = 0; i &lt; args.length; ++i) {
+          value[args[i].key] = args[i].value(scope, locals, assign, inputs);
+        }
+        return context ? {value: value} : value;
+      };
+    case AST.ThisExpression:
+      return function(scope) {
+        return context ? {value: scope} : scope;
+      };
+    case AST.NGValueParameter:
+      return function(scope, locals, assign, inputs) {
+        return context ? {value: assign} : assign;
+      };
+    }
+  },
+
+  &#039;unary+&#039;: function(argument, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = argument(scope, locals, assign, inputs);
+      if (isDefined(arg)) {
+        arg = +arg;
+      } else {
+        arg = 0;
+      }
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;unary-&#039;: function(argument, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = argument(scope, locals, assign, inputs);
+      if (isDefined(arg)) {
+        arg = -arg;
+      } else {
+        arg = 0;
+      }
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;unary!&#039;: function(argument, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = !argument(scope, locals, assign, inputs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;binary+&#039;: function(left, right, context) {
+    return function(scope, locals, assign, inputs) {
+      var lhs = left(scope, locals, assign, inputs);
+      var rhs = right(scope, locals, assign, inputs);
+      var arg = plusFn(lhs, rhs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;binary-&#039;: function(left, right, context) {
+    return function(scope, locals, assign, inputs) {
+      var lhs = left(scope, locals, assign, inputs);
+      var rhs = right(scope, locals, assign, inputs);
+      var arg = (isDefined(lhs) ? lhs : 0) - (isDefined(rhs) ? rhs : 0);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;binary*&#039;: function(left, right, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = left(scope, locals, assign, inputs) * right(scope, locals, assign, inputs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;binary/&#039;: function(left, right, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = left(scope, locals, assign, inputs) / right(scope, locals, assign, inputs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;binary%&#039;: function(left, right, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = left(scope, locals, assign, inputs) % right(scope, locals, assign, inputs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;binary===&#039;: function(left, right, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = left(scope, locals, assign, inputs) === right(scope, locals, assign, inputs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;binary!==&#039;: function(left, right, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = left(scope, locals, assign, inputs) !== right(scope, locals, assign, inputs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;binary==&#039;: function(left, right, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = left(scope, locals, assign, inputs) == right(scope, locals, assign, inputs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;binary!=&#039;: function(left, right, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = left(scope, locals, assign, inputs) != right(scope, locals, assign, inputs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;binary&lt;&#039;: function(left, right, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = left(scope, locals, assign, inputs) &lt; right(scope, locals, assign, inputs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;binary&gt;&#039;: function(left, right, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = left(scope, locals, assign, inputs) &gt; right(scope, locals, assign, inputs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;binary&lt;=&#039;: function(left, right, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = left(scope, locals, assign, inputs) &lt;= right(scope, locals, assign, inputs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;binary&gt;=&#039;: function(left, right, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = left(scope, locals, assign, inputs) &gt;= right(scope, locals, assign, inputs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;binary&amp;&amp;&#039;: function(left, right, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = left(scope, locals, assign, inputs) &amp;&amp; right(scope, locals, assign, inputs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;binary||&#039;: function(left, right, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = left(scope, locals, assign, inputs) || right(scope, locals, assign, inputs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  &#039;ternary?:&#039;: function(test, alternate, consequent, context) {
+    return function(scope, locals, assign, inputs) {
+      var arg = test(scope, locals, assign, inputs) ? alternate(scope, locals, assign, inputs) : consequent(scope, locals, assign, inputs);
+      return context ? {value: arg} : arg;
+    };
+  },
+  value: function(value, context) {
+    return function() { return context ? {context: undefined, name: undefined, value: value} : value; };
+  },
+  identifier: function(name, expensiveChecks, context, create, expression) {
+    return function(scope, locals, assign, inputs) {
+      var base = locals &amp;&amp; (name in locals) ? locals : scope;
+      if (create &amp;&amp; create !== 1 &amp;&amp; base &amp;&amp; !(base[name])) {
+        base[name] = {};
+      }
+      var value = base ? base[name] : undefined;
+      if (expensiveChecks) {
+        ensureSafeObject(value, expression);
+      }
+      if (context) {
+        return {context: base, name: name, value: value};
+      } else {
+        return value;
+      }
+    };
+  },
+  computedMember: function(left, right, context, create, expression) {
+    return function(scope, locals, assign, inputs) {
+      var lhs = left(scope, locals, assign, inputs);
+      var rhs;
+      var value;
+      if (lhs != null) {
+        rhs = right(scope, locals, assign, inputs);
+        ensureSafeMemberName(rhs, expression);
+        if (create &amp;&amp; create !== 1 &amp;&amp; lhs &amp;&amp; !(lhs[rhs])) {
+          lhs[rhs] = {};
+        }
+        value = lhs[rhs];
+        ensureSafeObject(value, expression);
+      }
+      if (context) {
+        return {context: lhs, name: rhs, value: value};
+      } else {
+        return value;
+      }
+    };
+  },
+  nonComputedMember: function(left, right, expensiveChecks, context, create, expression) {
+    return function(scope, locals, assign, inputs) {
+      var lhs = left(scope, locals, assign, inputs);
+      if (create &amp;&amp; create !== 1 &amp;&amp; lhs &amp;&amp; !(lhs[right])) {
+        lhs[right] = {};
+      }
+      var value = lhs != null ? lhs[right] : undefined;
+      if (expensiveChecks || isPossiblyDangerousMemberName(right)) {
+        ensureSafeObject(value, expression);
+      }
+      if (context) {
+        return {context: lhs, name: right, value: value};
+      } else {
+        return value;
+      }
+    };
+  },
+  inputs: function(input, watchId) {
+    return function(scope, value, locals, inputs) {
+      if (inputs) return inputs[watchId];
+      return input(scope, value, locals);
+    };
+  }
+};
+
+/**
+ * @constructor
+ */
+var Parser = function(lexer, $filter, options) {
+  this.lexer = lexer;
+  this.$filter = $filter;
+  this.options = options;
+  this.ast = new AST(this.lexer);
+  this.astCompiler = options.csp ? new ASTInterpreter(this.ast, $filter) :
+                                   new ASTCompiler(this.ast, $filter);
+};
+
+Parser.prototype = {
+  constructor: Parser,
+
+  parse: function(text) {
+    return this.astCompiler.compile(text, this.options.expensiveChecks);
+  }
+};
+
+//////////////////////////////////////////////////
+// Parser helper functions
+//////////////////////////////////////////////////
+
+function setter(obj, path, setValue, fullExp) {
+  ensureSafeObject(obj, fullExp);
+
+  var element = path.split(&#039;.&#039;), key;
+  for (var i = 0; element.length &gt; 1; i++) {
+    key = ensureSafeMemberName(element.shift(), fullExp);
+    var propertyObj = ensureSafeObject(obj[key], fullExp);
+    if (!propertyObj) {
+      propertyObj = {};
+      obj[key] = propertyObj;
+    }
+    obj = propertyObj;
+  }
+  key = ensureSafeMemberName(element.shift(), fullExp);
+  ensureSafeObject(obj[key], fullExp);
+  obj[key] = setValue;
+  return setValue;
+}
+
+var getterFnCacheDefault = createMap();
+var getterFnCacheExpensive = createMap();
+
+function isPossiblyDangerousMemberName(name) {
+  return name == &#039;constructor&#039;;
+}
+
+var objectValueOf = Object.prototype.valueOf;
+
+function getValueOf(value) {
+  return isFunction(value.valueOf) ? value.valueOf() : objectValueOf.call(value);
+}
+
+///////////////////////////////////
+
+/**
+ * @ngdoc service
+ * @name $parse
+ * @kind function
+ *
+ * @description
+ *
+ * Converts Angular {@link guide/expression expression} into a function.
+ *
+ * ```js
+ *   var getter = $parse(&#039;user.name&#039;);
+ *   var setter = getter.assign;
+ *   var context = {user:{name:&#039;angular&#039;}};
+ *   var locals = {user:{name:&#039;local&#039;}};
+ *
+ *   expect(getter(context)).toEqual(&#039;angular&#039;);
+ *   setter(context, &#039;newValue&#039;);
+ *   expect(context.user.name).toEqual(&#039;newValue&#039;);
+ *   expect(getter(context, locals)).toEqual(&#039;local&#039;);
+ * ```
+ *
+ *
+ * @param {string} expression String expression to compile.
+ * @returns {function(context, locals)} a function which represents the compiled expression:
+ *
+ *    * `context` – `{object}` – an object against which any expressions embedded in the strings
+ *      are evaluated against (typically a scope object).
+ *    * `locals` – `{object=}` – local variables context object, useful for overriding values in
+ *      `context`.
+ *
+ *    The returned function also has the following properties:
+ *      * `literal` – `{boolean}` – whether the expression&#039;s top-level node is a JavaScript
+ *        literal.
+ *      * `constant` – `{boolean}` – whether the expression is made entirely of JavaScript
+ *        constant literals.
+ *      * `assign` – `{?function(context, value)}` – if the expression is assignable, this will be
+ *        set to a function to change its value on the given context.
+ *
+ */
+
+
+/**
+ * @ngdoc provider
+ * @name $parseProvider
+ *
+ * @description
+ * `$parseProvider` can be used for configuring the default behavior of the {@link ng.$parse $parse}
+ *  service.
+ */
+function $ParseProvider() {
+  var cacheDefault = createMap();
+  var cacheExpensive = createMap();
+
+  this.$get = [&#039;$filter&#039;, &#039;$sniffer&#039;, function($filter, $sniffer) {
+    var $parseOptions = {
+          csp: $sniffer.csp,
+          expensiveChecks: false
+        },
+        $parseOptionsExpensive = {
+          csp: $sniffer.csp,
+          expensiveChecks: true
+        };
+
+    return function $parse(exp, interceptorFn, expensiveChecks) {
+      var parsedExpression, oneTime, cacheKey;
+
+      switch (typeof exp) {
+        case &#039;string&#039;:
+          exp = exp.trim();
+          cacheKey = exp;
+
+          var cache = (expensiveChecks ? cacheExpensive : cacheDefault);
+          parsedExpression = cache[cacheKey];
+
+          if (!parsedExpression) {
+            if (exp.charAt(0) === &#039;:&#039; &amp;&amp; exp.charAt(1) === &#039;:&#039;) {
+              oneTime = true;
+              exp = exp.substring(2);
+            }
+            var parseOptions = expensiveChecks ? $parseOptionsExpensive : $parseOptions;
+            var lexer = new Lexer(parseOptions);
+            var parser = new Parser(lexer, $filter, parseOptions);
+            parsedExpression = parser.parse(exp);
+            if (parsedExpression.constant) {
+              parsedExpression.$$watchDelegate = constantWatchDelegate;
+            } else if (oneTime) {
+              parsedExpression.$$watchDelegate = parsedExpression.literal ?
+                  oneTimeLiteralWatchDelegate : oneTimeWatchDelegate;
+            } else if (parsedExpression.inputs) {
+              parsedExpression.$$watchDelegate = inputsWatchDelegate;
+            }
+            cache[cacheKey] = parsedExpression;
+          }
+          return addInterceptor(parsedExpression, interceptorFn);
+
+        case &#039;function&#039;:
+          return addInterceptor(exp, interceptorFn);
+
+        default:
+          return noop;
+      }
+    };
+
+    function expressionInputDirtyCheck(newValue, oldValueOfValue) {
+
+      if (newValue == null || oldValueOfValue == null) { // null/undefined
+        return newValue === oldValueOfValue;
+      }
+
+      if (typeof newValue === &#039;object&#039;) {
+
+        // attempt to convert the value to a primitive type
+        // TODO(docs): add a note to docs that by implementing valueOf even objects and arrays can
+        //             be cheaply dirty-checked
+        newValue = getValueOf(newValue);
+
+        if (typeof newValue === &#039;object&#039;) {
+          // objects/arrays are not supported - deep-watching them would be too expensive
+          return false;
+        }
+
+        // fall-through to the primitive equality check
+      }
+
+      //Primitive or NaN
+      return newValue === oldValueOfValue || (newValue !== newValue &amp;&amp; oldValueOfValue !== oldValueOfValue);
+    }
+
+    function inputsWatchDelegate(scope, listener, objectEquality, parsedExpression, prettyPrintExpression) {
+      var inputExpressions = parsedExpression.inputs;
+      var lastResult;
+
+      if (inputExpressions.length === 1) {
+        var oldInputValueOf = expressionInputDirtyCheck; // init to something unique so that equals check fails
+        inputExpressions = inputExpressions[0];
+        return scope.$watch(function expressionInputWatch(scope) {
+          var newInputValue = inputExpressions(scope);
+          if (!expressionInputDirtyCheck(newInputValue, oldInputValueOf)) {
+            lastResult = parsedExpression(scope, undefined, undefined, [newInputValue]);
+            oldInputValueOf = newInputValue &amp;&amp; getValueOf(newInputValue);
+          }
+          return lastResult;
+        }, listener, objectEquality, prettyPrintExpression);
+      }
+
+      var oldInputValueOfValues = [];
+      var oldInputValues = [];
+      for (var i = 0, ii = inputExpressions.length; i &lt; ii; i++) {
+        oldInputValueOfValues[i] = expressionInputDirtyCheck; // init to something unique so that equals check fails
+        oldInputValues[i] = null;
+      }
+
+      return scope.$watch(function expressionInputsWatch(scope) {
+        var changed = false;
+
+        for (var i = 0, ii = inputExpressions.length; i &lt; ii; i++) {
+          var newInputValue = inputExpressions[i](scope);
+          if (changed || (changed = !expressionInputDirtyCheck(newInputValue, oldInputValueOfValues[i]))) {
+            oldInputValues[i] = newInputValue;
+            oldInputValueOfValues[i] = newInputValue &amp;&amp; getValueOf(newInputValue);
+          }
+        }
+
+        if (changed) {
+          lastResult = parsedExpression(scope, undefined, undefined, oldInputValues);
+        }
+
+        return lastResult;
+      }, listener, objectEquality, prettyPrintExpression);
+    }
+
+    function oneTimeWatchDelegate(scope, listener, objectEquality, parsedExpression) {
+      var unwatch, lastValue;
+      return unwatch = scope.$watch(function oneTimeWatch(scope) {
+        return parsedExpression(scope);
+      }, function oneTimeListener(value, old, scope) {
+        lastValue = value;
+        if (isFunction(listener)) {
+          listener.apply(this, arguments);
+        }
+        if (isDefined(value)) {
+          scope.$$postDigest(function() {
+            if (isDefined(lastValue)) {
+              unwatch();
+            }
+          });
+        }
+      }, objectEquality);
+    }
+
+    function oneTimeLiteralWatchDelegate(scope, listener, objectEquality, parsedExpression) {
+      var unwatch, lastValue;
+      return unwatch = scope.$watch(function oneTimeWatch(scope) {
+        return parsedExpression(scope);
+      }, function oneTimeListener(value, old, scope) {
+        lastValue = value;
+        if (isFunction(listener)) {
+          listener.call(this, value, old, scope);
+        }
+        if (isAllDefined(value)) {
+          scope.$$postDigest(function() {
+            if (isAllDefined(lastValue)) unwatch();
+          });
+        }
+      }, objectEquality);
+
+      function isAllDefined(value) {
+        var allDefined = true;
+        forEach(value, function(val) {
+          if (!isDefined(val)) allDefined = false;
+        });
+        return allDefined;
+      }
+    }
+
+    function constantWatchDelegate(scope, listener, objectEquality, parsedExpression) {
+      var unwatch;
+      return unwatch = scope.$watch(function constantWatch(scope) {
+        return parsedExpression(scope);
+      }, function constantListener(value, old, scope) {
+        if (isFunction(listener)) {
+          listener.apply(this, arguments);
+        }
+        unwatch();
+      }, objectEquality);
+    }
+
+    function addInterceptor(parsedExpression, interceptorFn) {
+      if (!interceptorFn) return parsedExpression;
+      var watchDelegate = parsedExpression.$$watchDelegate;
+
+      var regularWatch =
+          watchDelegate !== oneTimeLiteralWatchDelegate &amp;&amp;
+          watchDelegate !== oneTimeWatchDelegate;
+
+      var fn = regularWatch ? function regularInterceptedExpression(scope, locals, assign, inputs) {
+        var value = parsedExpression(scope, locals, assign, inputs);
+        return interceptorFn(value, scope, locals);
+      } : function oneTimeInterceptedExpression(scope, locals, assign, inputs) {
+        var value = parsedExpression(scope, locals, assign, inputs);
+        var result = interceptorFn(value, scope, locals);
+        // we only return the interceptor&#039;s result if the
+        // initial value is defined (for bind-once)
+        return isDefined(value) ? result : value;
+      };
+
+      // Propagate $$watchDelegates other then inputsWatchDelegate
+      if (parsedExpression.$$watchDelegate &amp;&amp;
+          parsedExpression.$$watchDelegate !== inputsWatchDelegate) {
+        fn.$$watchDelegate = parsedExpression.$$watchDelegate;
+      } else if (!interceptorFn.$stateful) {
+        // If there is an interceptor, but no watchDelegate then treat the interceptor like
+        // we treat filters - it is assumed to be a pure function unless flagged with $stateful
+        fn.$$watchDelegate = inputsWatchDelegate;
+        fn.inputs = parsedExpression.inputs ? parsedExpression.inputs : [parsedExpression];
+      }
+
+      return fn;
+    }
+  }];
+}</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

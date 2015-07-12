@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - src\ng\directive\ngPluralize.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>src\ng\directive\ngPluralize.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">67.08</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">240</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">23.75</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">0.58</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+/**
+ * @ngdoc directive
+ * @name ngPluralize
+ * @restrict EA
+ *
+ * @description
+ * `ngPluralize` is a directive that displays messages according to en-US localization rules.
+ * These rules are bundled with angular.js, but can be overridden
+ * (see {@link guide/i18n Angular i18n} dev guide). You configure ngPluralize directive
+ * by specifying the mappings between
+ * [plural categories](http://unicode.org/repos/cldr-tmp/trunk/diff/supplemental/language_plural_rules.html)
+ * and the strings to be displayed.
+ *
+ * # Plural categories and explicit number rules
+ * There are two
+ * [plural categories](http://unicode.org/repos/cldr-tmp/trunk/diff/supplemental/language_plural_rules.html)
+ * in Angular&#039;s default en-US locale: &quot;one&quot; and &quot;other&quot;.
+ *
+ * While a plural category may match many numbers (for example, in en-US locale, &quot;other&quot; can match
+ * any number that is not 1), an explicit number rule can only match one number. For example, the
+ * explicit number rule for &quot;3&quot; matches the number 3. There are examples of plural categories
+ * and explicit number rules throughout the rest of this documentation.
+ *
+ * # Configuring ngPluralize
+ * You configure ngPluralize by providing 2 attributes: `count` and `when`.
+ * You can also provide an optional attribute, `offset`.
+ *
+ * The value of the `count` attribute can be either a string or an {@link guide/expression
+ * Angular expression}; these are evaluated on the current scope for its bound value.
+ *
+ * The `when` attribute specifies the mappings between plural categories and the actual
+ * string to be displayed. The value of the attribute should be a JSON object.
+ *
+ * The following example shows how to configure ngPluralize:
+ *
+ * ```html
+ * &lt;ng-pluralize count=&quot;personCount&quot;
+                 when=&quot;{&#039;0&#039;: &#039;Nobody is viewing.&#039;,
+ *                      &#039;one&#039;: &#039;1 person is viewing.&#039;,
+ *                      &#039;other&#039;: &#039;{} people are viewing.&#039;}&quot;&gt;
+ * &lt;/ng-pluralize&gt;
+ *```
+ *
+ * In the example, `&quot;0: Nobody is viewing.&quot;` is an explicit number rule. If you did not
+ * specify this rule, 0 would be matched to the &quot;other&quot; category and &quot;0 people are viewing&quot;
+ * would be shown instead of &quot;Nobody is viewing&quot;. You can specify an explicit number rule for
+ * other numbers, for example 12, so that instead of showing &quot;12 people are viewing&quot;, you can
+ * show &quot;a dozen people are viewing&quot;.
+ *
+ * You can use a set of closed braces (`{}`) as a placeholder for the number that you want substituted
+ * into pluralized strings. In the previous example, Angular will replace `{}` with
+ * &lt;span ng-non-bindable&gt;`{{personCount}}`&lt;/span&gt;. The closed braces `{}` is a placeholder
+ * for &lt;span ng-non-bindable&gt;{{numberExpression}}&lt;/span&gt;.
+ *
+ * If no rule is defined for a category, then an empty string is displayed and a warning is generated.
+ * Note that some locales define more categories than `one` and `other`. For example, fr-fr defines `few` and `many`.
+ *
+ * # Configuring ngPluralize with offset
+ * The `offset` attribute allows further customization of pluralized text, which can result in
+ * a better user experience. For example, instead of the message &quot;4 people are viewing this document&quot;,
+ * you might display &quot;John, Kate and 2 others are viewing this document&quot;.
+ * The offset attribute allows you to offset a number by any desired value.
+ * Let&#039;s take a look at an example:
+ *
+ * ```html
+ * &lt;ng-pluralize count=&quot;personCount&quot; offset=2
+ *               when=&quot;{&#039;0&#039;: &#039;Nobody is viewing.&#039;,
+ *                      &#039;1&#039;: &#039;{{person1}} is viewing.&#039;,
+ *                      &#039;2&#039;: &#039;{{person1}} and {{person2}} are viewing.&#039;,
+ *                      &#039;one&#039;: &#039;{{person1}}, {{person2}} and one other person are viewing.&#039;,
+ *                      &#039;other&#039;: &#039;{{person1}}, {{person2}} and {} other people are viewing.&#039;}&quot;&gt;
+ * &lt;/ng-pluralize&gt;
+ * ```
+ *
+ * Notice that we are still using two plural categories(one, other), but we added
+ * three explicit number rules 0, 1 and 2.
+ * When one person, perhaps John, views the document, &quot;John is viewing&quot; will be shown.
+ * When three people view the document, no explicit number rule is found, so
+ * an offset of 2 is taken off 3, and Angular uses 1 to decide the plural category.
+ * In this case, plural category &#039;one&#039; is matched and &quot;John, Mary and one other person are viewing&quot;
+ * is shown.
+ *
+ * Note that when you specify offsets, you must provide explicit number rules for
+ * numbers from 0 up to and including the offset. If you use an offset of 3, for example,
+ * you must provide explicit number rules for 0, 1, 2 and 3. You must also provide plural strings for
+ * plural categories &quot;one&quot; and &quot;other&quot;.
+ *
+ * @param {string|expression} count The variable to be bound to.
+ * @param {string} when The mapping between plural category to its corresponding strings.
+ * @param {number=} offset Offset to deduct from the total number.
+ *
+ * @example
+    &lt;example module=&quot;pluralizeExample&quot;&gt;
+      &lt;file name=&quot;index.html&quot;&gt;
+        &lt;script&gt;
+          angular.module(&#039;pluralizeExample&#039;, [])
+            .controller(&#039;ExampleController&#039;, [&#039;$scope&#039;, function($scope) {
+              $scope.person1 = &#039;Igor&#039;;
+              $scope.person2 = &#039;Misko&#039;;
+              $scope.personCount = 1;
+            }]);
+        &lt;/script&gt;
+        &lt;div ng-controller=&quot;ExampleController&quot;&gt;
+          &lt;label&gt;Person 1:&lt;input type=&quot;text&quot; ng-model=&quot;person1&quot; value=&quot;Igor&quot; /&gt;&lt;/label&gt;&lt;br/&gt;
+          &lt;label&gt;Person 2:&lt;input type=&quot;text&quot; ng-model=&quot;person2&quot; value=&quot;Misko&quot; /&gt;&lt;/label&gt;&lt;br/&gt;
+          &lt;label&gt;Number of People:&lt;input type=&quot;text&quot; ng-model=&quot;personCount&quot; value=&quot;1&quot; /&gt;&lt;/label&gt;&lt;br/&gt;
+
+          &lt;!--- Example with simple pluralization rules for en locale ---&gt;
+          Without Offset:
+          &lt;ng-pluralize count=&quot;personCount&quot;
+                        when=&quot;{&#039;0&#039;: &#039;Nobody is viewing.&#039;,
+                               &#039;one&#039;: &#039;1 person is viewing.&#039;,
+                               &#039;other&#039;: &#039;{} people are viewing.&#039;}&quot;&gt;
+          &lt;/ng-pluralize&gt;&lt;br&gt;
+
+          &lt;!--- Example with offset ---&gt;
+          With Offset(2):
+          &lt;ng-pluralize count=&quot;personCount&quot; offset=2
+                        when=&quot;{&#039;0&#039;: &#039;Nobody is viewing.&#039;,
+                               &#039;1&#039;: &#039;{{person1}} is viewing.&#039;,
+                               &#039;2&#039;: &#039;{{person1}} and {{person2}} are viewing.&#039;,
+                               &#039;one&#039;: &#039;{{person1}}, {{person2}} and one other person are viewing.&#039;,
+                               &#039;other&#039;: &#039;{{person1}}, {{person2}} and {} other people are viewing.&#039;}&quot;&gt;
+          &lt;/ng-pluralize&gt;
+        &lt;/div&gt;
+      &lt;/file&gt;
+      &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+        it(&#039;should show correct pluralized string&#039;, function() {
+          var withoutOffset = element.all(by.css(&#039;ng-pluralize&#039;)).get(0);
+          var withOffset = element.all(by.css(&#039;ng-pluralize&#039;)).get(1);
+          var countInput = element(by.model(&#039;personCount&#039;));
+
+          expect(withoutOffset.getText()).toEqual(&#039;1 person is viewing.&#039;);
+          expect(withOffset.getText()).toEqual(&#039;Igor is viewing.&#039;);
+
+          countInput.clear();
+          countInput.sendKeys(&#039;0&#039;);
+
+          expect(withoutOffset.getText()).toEqual(&#039;Nobody is viewing.&#039;);
+          expect(withOffset.getText()).toEqual(&#039;Nobody is viewing.&#039;);
+
+          countInput.clear();
+          countInput.sendKeys(&#039;2&#039;);
+
+          expect(withoutOffset.getText()).toEqual(&#039;2 people are viewing.&#039;);
+          expect(withOffset.getText()).toEqual(&#039;Igor and Misko are viewing.&#039;);
+
+          countInput.clear();
+          countInput.sendKeys(&#039;3&#039;);
+
+          expect(withoutOffset.getText()).toEqual(&#039;3 people are viewing.&#039;);
+          expect(withOffset.getText()).toEqual(&#039;Igor, Misko and one other person are viewing.&#039;);
+
+          countInput.clear();
+          countInput.sendKeys(&#039;4&#039;);
+
+          expect(withoutOffset.getText()).toEqual(&#039;4 people are viewing.&#039;);
+          expect(withOffset.getText()).toEqual(&#039;Igor, Misko and 2 other people are viewing.&#039;);
+        });
+        it(&#039;should show data-bound names&#039;, function() {
+          var withOffset = element.all(by.css(&#039;ng-pluralize&#039;)).get(1);
+          var personCount = element(by.model(&#039;personCount&#039;));
+          var person1 = element(by.model(&#039;person1&#039;));
+          var person2 = element(by.model(&#039;person2&#039;));
+          personCount.clear();
+          personCount.sendKeys(&#039;4&#039;);
+          person1.clear();
+          person1.sendKeys(&#039;Di&#039;);
+          person2.clear();
+          person2.sendKeys(&#039;Vojta&#039;);
+          expect(withOffset.getText()).toEqual(&#039;Di, Vojta and 2 other people are viewing.&#039;);
+        });
+      &lt;/file&gt;
+    &lt;/example&gt;
+ */
+var ngPluralizeDirective = [&#039;$locale&#039;, &#039;$interpolate&#039;, &#039;$log&#039;, function($locale, $interpolate, $log) {
+  var BRACE = /{}/g,
+      IS_WHEN = /^when(Minus)?(.+)$/;
+
+  return {
+    link: function(scope, element, attr) {
+      var numberExp = attr.count,
+          whenExp = attr.$attr.when &amp;&amp; element.attr(attr.$attr.when), // we have {{}} in attrs
+          offset = attr.offset || 0,
+          whens = scope.$eval(whenExp) || {},
+          whensExpFns = {},
+          startSymbol = $interpolate.startSymbol(),
+          endSymbol = $interpolate.endSymbol(),
+          braceReplacement = startSymbol + numberExp + &#039;-&#039; + offset + endSymbol,
+          watchRemover = angular.noop,
+          lastCount;
+
+      forEach(attr, function(expression, attributeName) {
+        var tmpMatch = IS_WHEN.exec(attributeName);
+        if (tmpMatch) {
+          var whenKey = (tmpMatch[1] ? &#039;-&#039; : &#039;&#039;) + lowercase(tmpMatch[2]);
+          whens[whenKey] = element.attr(attr.$attr[attributeName]);
+        }
+      });
+      forEach(whens, function(expression, key) {
+        whensExpFns[key] = $interpolate(expression.replace(BRACE, braceReplacement));
+
+      });
+
+      scope.$watch(numberExp, function ngPluralizeWatchAction(newVal) {
+        var count = parseFloat(newVal);
+        var countIsNaN = isNaN(count);
+
+        if (!countIsNaN &amp;&amp; !(count in whens)) {
+          // If an explicit number rule such as 1, 2, 3... is defined, just use it.
+          // Otherwise, check it against pluralization rules in $locale service.
+          count = $locale.pluralCat(count - offset);
+        }
+
+        // If both `count` and `lastCount` are NaN, we don&#039;t need to re-register a watch.
+        // In JS `NaN !== NaN`, so we have to exlicitly check.
+        if ((count !== lastCount) &amp;&amp; !(countIsNaN &amp;&amp; isNumber(lastCount) &amp;&amp; isNaN(lastCount))) {
+          watchRemover();
+          var whenExpFn = whensExpFns[count];
+          if (isUndefined(whenExpFn)) {
+            if (newVal != null) {
+              $log.debug(&quot;ngPluralize: no rule defined for &#039;&quot; + count + &quot;&#039; in &quot; + whenExp);
+            }
+            watchRemover = noop;
+            updateElementText();
+          } else {
+            watchRemover = scope.$watch(whenExpFn, updateElementText);
+          }
+          lastCount = count;
+        }
+      });
+
+      function updateElementText(newText) {
+        element.text(newText || &#039;&#039;);
+      }
+    }
+  };
+}];</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

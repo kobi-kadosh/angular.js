@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - src\ng\directive\ngList.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>src\ng\directive\ngList.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">74.19</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">130</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">14.38</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">0.27</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+
+/**
+ * @ngdoc directive
+ * @name ngList
+ *
+ * @description
+ * Text input that converts between a delimited string and an array of strings. The default
+ * delimiter is a comma followed by a space - equivalent to `ng-list=&quot;, &quot;`. You can specify a custom
+ * delimiter as the value of the `ngList` attribute - for example, `ng-list=&quot; | &quot;`.
+ *
+ * The behaviour of the directive is affected by the use of the `ngTrim` attribute.
+ * * If `ngTrim` is set to `&quot;false&quot;` then whitespace around both the separator and each
+ *   list item is respected. This implies that the user of the directive is responsible for
+ *   dealing with whitespace but also allows you to use whitespace as a delimiter, such as a
+ *   tab or newline character.
+ * * Otherwise whitespace around the delimiter is ignored when splitting (although it is respected
+ *   when joining the list items back together) and whitespace around each list item is stripped
+ *   before it is added to the model.
+ *
+ * ### Example with Validation
+ *
+ * &lt;example name=&quot;ngList-directive&quot; module=&quot;listExample&quot;&gt;
+ *   &lt;file name=&quot;app.js&quot;&gt;
+ *      angular.module(&#039;listExample&#039;, [])
+ *        .controller(&#039;ExampleController&#039;, [&#039;$scope&#039;, function($scope) {
+ *          $scope.names = [&#039;morpheus&#039;, &#039;neo&#039;, &#039;trinity&#039;];
+ *        }]);
+ *   &lt;/file&gt;
+ *   &lt;file name=&quot;index.html&quot;&gt;
+ *    &lt;form name=&quot;myForm&quot; ng-controller=&quot;ExampleController&quot;&gt;
+ *      &lt;label&gt;List: &lt;input name=&quot;namesInput&quot; ng-model=&quot;names&quot; ng-list required&gt;&lt;/label&gt;
+ *      &lt;span role=&quot;alert&quot;&gt;
+ *        &lt;span class=&quot;error&quot; ng-show=&quot;myForm.namesInput.$error.required&quot;&gt;
+ *        Required!&lt;/span&gt;
+ *      &lt;/span&gt;
+ *      &lt;br&gt;
+ *      &lt;tt&gt;names = {{names}}&lt;/tt&gt;&lt;br/&gt;
+ *      &lt;tt&gt;myForm.namesInput.$valid = {{myForm.namesInput.$valid}}&lt;/tt&gt;&lt;br/&gt;
+ *      &lt;tt&gt;myForm.namesInput.$error = {{myForm.namesInput.$error}}&lt;/tt&gt;&lt;br/&gt;
+ *      &lt;tt&gt;myForm.$valid = {{myForm.$valid}}&lt;/tt&gt;&lt;br/&gt;
+ *      &lt;tt&gt;myForm.$error.required = {{!!myForm.$error.required}}&lt;/tt&gt;&lt;br/&gt;
+ *     &lt;/form&gt;
+ *   &lt;/file&gt;
+ *   &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+ *     var listInput = element(by.model(&#039;names&#039;));
+ *     var names = element(by.exactBinding(&#039;names&#039;));
+ *     var valid = element(by.binding(&#039;myForm.namesInput.$valid&#039;));
+ *     var error = element(by.css(&#039;span.error&#039;));
+ *
+ *     it(&#039;should initialize to model&#039;, function() {
+ *       expect(names.getText()).toContain(&#039;[&quot;morpheus&quot;,&quot;neo&quot;,&quot;trinity&quot;]&#039;);
+ *       expect(valid.getText()).toContain(&#039;true&#039;);
+ *       expect(error.getCssValue(&#039;display&#039;)).toBe(&#039;none&#039;);
+ *     });
+ *
+ *     it(&#039;should be invalid if empty&#039;, function() {
+ *       listInput.clear();
+ *       listInput.sendKeys(&#039;&#039;);
+ *
+ *       expect(names.getText()).toContain(&#039;&#039;);
+ *       expect(valid.getText()).toContain(&#039;false&#039;);
+ *       expect(error.getCssValue(&#039;display&#039;)).not.toBe(&#039;none&#039;);
+ *     });
+ *   &lt;/file&gt;
+ * &lt;/example&gt;
+ *
+ * ### Example - splitting on whitespace
+ * &lt;example name=&quot;ngList-directive-newlines&quot;&gt;
+ *   &lt;file name=&quot;index.html&quot;&gt;
+ *    &lt;textarea ng-model=&quot;list&quot; ng-list=&quot;&amp;#10;&quot; ng-trim=&quot;false&quot;&gt;&lt;/textarea&gt;
+ *    &lt;pre&gt;{{ list | json }}&lt;/pre&gt;
+ *   &lt;/file&gt;
+ *   &lt;file name=&quot;protractor.js&quot; type=&quot;protractor&quot;&gt;
+ *     it(&quot;should split the text by newlines&quot;, function() {
+ *       var listInput = element(by.model(&#039;list&#039;));
+ *       var output = element(by.binding(&#039;list | json&#039;));
+ *       listInput.sendKeys(&#039;abc\ndef\nghi&#039;);
+ *       expect(output.getText()).toContain(&#039;[\n  &quot;abc&quot;,\n  &quot;def&quot;,\n  &quot;ghi&quot;\n]&#039;);
+ *     });
+ *   &lt;/file&gt;
+ * &lt;/example&gt;
+ *
+ * @element input
+ * @param {string=} ngList optional delimiter that should be used to split the value.
+ */
+var ngListDirective = function() {
+  return {
+    restrict: &#039;A&#039;,
+    priority: 100,
+    require: &#039;ngModel&#039;,
+    link: function(scope, element, attr, ctrl) {
+      // We want to control whitespace trimming so we use this convoluted approach
+      // to access the ngList attribute, which doesn&#039;t pre-trim the attribute
+      var ngList = element.attr(attr.$attr.ngList) || &#039;, &#039;;
+      var trimValues = attr.ngTrim !== &#039;false&#039;;
+      var separator = trimValues ? trim(ngList) : ngList;
+
+      var parse = function(viewValue) {
+        // If the viewValue is invalid (say required but empty) it will be `undefined`
+        if (isUndefined(viewValue)) return;
+
+        var list = [];
+
+        if (viewValue) {
+          forEach(viewValue.split(separator), function(value) {
+            if (value) list.push(trimValues ? trim(value) : value);
+          });
+        }
+
+        return list;
+      };
+
+      ctrl.$parsers.push(parse);
+      ctrl.$formatters.push(function(value) {
+        if (isArray(value)) {
+          return value.join(ngList);
+        }
+
+        return undefined;
+      });
+
+      // Override the standard $isEmpty because an empty array means the input is empty.
+      ctrl.$isEmpty = function(value) {
+        return !value || !value.length;
+      };
+    }
+  };
+};</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

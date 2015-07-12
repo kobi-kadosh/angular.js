@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - src\ngScenario\Scenario.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>src\ngScenario\Scenario.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">69.96</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">327</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">49.74</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">2.53</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">&#039;use strict&#039;;
+
+
+/**
+ * Setup file for the Scenario.
+ * Must be first in the compilation/bootstrap list.
+ */
+
+// Public namespace
+angular.scenario = angular.scenario || {};
+
+/**
+ * Expose jQuery (e.g. for custom dsl extensions).
+ */
+angular.scenario.jQuery = _jQuery;
+
+/**
+ * Defines a new output format.
+ *
+ * @param {string} name the name of the new output format
+ * @param {function()} fn function(context, runner) that generates the output
+ */
+angular.scenario.output = angular.scenario.output || function(name, fn) {
+  angular.scenario.output[name] = fn;
+};
+
+/**
+ * Defines a new DSL statement. If your factory function returns a Future
+ * it&#039;s returned, otherwise the result is assumed to be a map of functions
+ * for chaining. Chained functions are subject to the same rules.
+ *
+ * Note: All functions on the chain are bound to the chain scope so values
+ *   set on &quot;this&quot; in your statement function are available in the chained
+ *   functions.
+ *
+ * @param {string} name The name of the statement
+ * @param {function()} fn Factory function(), return a function for
+ *  the statement.
+ */
+angular.scenario.dsl = angular.scenario.dsl || function(name, fn) {
+  angular.scenario.dsl[name] = function() {
+    /* jshint -W040 *//* The dsl binds `this` for us when calling chained functions */
+    function executeStatement(statement, args) {
+      var result = statement.apply(this, args);
+      if (angular.isFunction(result) || result instanceof angular.scenario.Future) {
+        return result;
+      }
+      var self = this;
+      var chain = angular.extend({}, result);
+      angular.forEach(chain, function(value, name) {
+        if (angular.isFunction(value)) {
+          chain[name] = function() {
+            return executeStatement.call(self, value, arguments);
+          };
+        } else {
+          chain[name] = value;
+        }
+      });
+      return chain;
+    }
+    var statement = fn.apply(this, arguments);
+    return function() {
+      return executeStatement.call(this, statement, arguments);
+    };
+  };
+};
+
+/**
+ * Defines a new matcher for use with the expects() statement. The value
+ * this.actual (like in Jasmine) is available in your matcher to compare
+ * against. Your function should return a boolean. The future is automatically
+ * created for you.
+ *
+ * @param {string} name The name of the matcher
+ * @param {function()} fn The matching function(expected).
+ */
+angular.scenario.matcher = angular.scenario.matcher || function(name, fn) {
+  angular.scenario.matcher[name] = function(expected) {
+    var description = this.future.name +
+                      (this.inverse ? &#039; not &#039; : &#039; &#039;) + name +
+                      &#039; &#039; + angular.toJson(expected);
+    var self = this;
+    this.addFuture(&#039;expect &#039; + description,
+      function(done) {
+        var error;
+        self.actual = self.future.value;
+        if ((self.inverse &amp;&amp; fn.call(self, expected)) ||
+            (!self.inverse &amp;&amp; !fn.call(self, expected))) {
+          error = &#039;expected &#039; + description +
+            &#039; but was &#039; + angular.toJson(self.actual);
+        }
+        done(error);
+    });
+  };
+};
+
+/**
+ * Initialize the scenario runner and run !
+ *
+ * Access global window and document object
+ * Access $runner through closure
+ *
+ * @param {Object=} config Config options
+ */
+angular.scenario.setUpAndRun = function(config) {
+  var href = window.location.href;
+  var body = _jQuery(document.body);
+  var output = [];
+  var objModel = new angular.scenario.ObjectModel($runner);
+
+  if (config &amp;&amp; config.scenario_output) {
+    output = config.scenario_output.split(&#039;,&#039;);
+  }
+
+  angular.forEach(angular.scenario.output, function(fn, name) {
+    if (!output.length || output.indexOf(name) != -1) {
+      var context = body.append(&#039;&lt;div&gt;&lt;/div&gt;&#039;).find(&#039;div:last&#039;);
+      context.attr(&#039;id&#039;, name);
+      fn.call({}, context, $runner, objModel);
+    }
+  });
+
+  if (!/^http/.test(href) &amp;&amp; !/^https/.test(href)) {
+    body.append(&#039;&lt;p id=&quot;system-error&quot;&gt;&lt;/p&gt;&#039;);
+    body.find(&#039;#system-error&#039;).text(
+      &#039;Scenario runner must be run using http or https. The protocol &#039; +
+      href.split(&#039;:&#039;)[0] + &#039;:// is not supported.&#039;
+    );
+    return;
+  }
+
+  var appFrame = body.append(&#039;&lt;div id=&quot;application&quot;&gt;&lt;/div&gt;&#039;).find(&#039;#application&#039;);
+  var application = new angular.scenario.Application(appFrame);
+
+  $runner.on(&#039;RunnerEnd&#039;, function() {
+    appFrame.css(&#039;display&#039;, &#039;none&#039;);
+    appFrame.find(&#039;iframe&#039;).attr(&#039;src&#039;, &#039;about:blank&#039;);
+  });
+
+  $runner.on(&#039;RunnerError&#039;, function(error) {
+    if (window.console) {
+      console.log(formatException(error));
+    } else {
+      // Do something for IE
+      alert(error);
+    }
+  });
+
+  $runner.run(application);
+};
+
+/**
+ * Iterates through list with iterator function that must call the
+ * continueFunction to continue iterating.
+ *
+ * @param {Array} list list to iterate over
+ * @param {function()} iterator Callback function(value, continueFunction)
+ * @param {function()} done Callback function(error, result) called when
+ *   iteration finishes or an error occurs.
+ */
+function asyncForEach(list, iterator, done) {
+  var i = 0;
+  function loop(error, index) {
+    if (index &amp;&amp; index &gt; i) {
+      i = index;
+    }
+    if (error || i &gt;= list.length) {
+      done(error);
+    } else {
+      try {
+        iterator(list[i++], loop);
+      } catch (e) {
+        done(e);
+      }
+    }
+  }
+  loop();
+}
+
+/**
+ * Formats an exception into a string with the stack trace, but limits
+ * to a specific line length.
+ *
+ * @param {Object} error The exception to format, can be anything throwable
+ * @param {Number=} [maxStackLines=5] max lines of the stack trace to include
+ *  default is 5.
+ */
+function formatException(error, maxStackLines) {
+  maxStackLines = maxStackLines || 5;
+  var message = error.toString();
+  if (error.stack) {
+    var stack = error.stack.split(&#039;\n&#039;);
+    if (stack[0].indexOf(message) === -1) {
+      maxStackLines++;
+      stack.unshift(error.message);
+    }
+    message = stack.slice(0, maxStackLines).join(&#039;\n&#039;);
+  }
+  return message;
+}
+
+/**
+ * Returns a function that gets the file name and line number from a
+ * location in the stack if available based on the call site.
+ *
+ * Note: this returns another function because accessing .stack is very
+ * expensive in Chrome.
+ *
+ * @param {Number} offset Number of stack lines to skip
+ */
+function callerFile(offset) {
+  var error = new Error();
+
+  return function() {
+    var line = (error.stack || &#039;&#039;).split(&#039;\n&#039;)[offset];
+
+    // Clean up the stack trace line
+    if (line) {
+      if (line.indexOf(&#039;@&#039;) !== -1) {
+        // Firefox
+        line = line.substring(line.indexOf(&#039;@&#039;) + 1);
+      } else {
+        // Chrome
+        line = line.substring(line.indexOf(&#039;(&#039;) + 1).replace(&#039;)&#039;, &#039;&#039;);
+      }
+    }
+
+    return line || &#039;&#039;;
+  };
+}
+
+
+/**
+ * Don&#039;t use the jQuery trigger method since it works incorrectly.
+ *
+ * jQuery notifies listeners and then changes the state of a checkbox and
+ * does not create a real browser event. A real click changes the state of
+ * the checkbox and then notifies listeners.
+ *
+ * To work around this we instead use our own handler that fires a real event.
+ */
+(function(fn) {
+  // We need a handle to the original trigger function for input tests.
+  var parentTrigger = fn._originalTrigger = fn.trigger;
+  fn.trigger = function(type) {
+    if (/(click|change|keydown|blur|input|mousedown|mouseup)/.test(type)) {
+      var processDefaults = [];
+      this.each(function(index, node) {
+        processDefaults.push(browserTrigger(node, type));
+      });
+
+      // this is not compatible with jQuery - we return an array of returned values,
+      // so that scenario runner know whether JS code has preventDefault() of the event or not...
+      return processDefaults;
+    }
+    return parentTrigger.apply(this, arguments);
+  };
+})(_jQuery.fn);
+
+/**
+ * Finds all bindings with the substring match of name and returns an
+ * array of their values.
+ *
+ * @param {string} bindExp The name to match
+ * @return {Array.&lt;string&gt;} String of binding values
+ */
+_jQuery.fn.bindings = function(windowJquery, bindExp) {
+  var result = [], match,
+      bindSelector = &#039;.ng-binding:visible&#039;;
+  if (angular.isString(bindExp)) {
+    bindExp = bindExp.replace(/\s/g, &#039;&#039;);
+    match = function(actualExp) {
+      if (actualExp) {
+        actualExp = actualExp.replace(/\s/g, &#039;&#039;);
+        if (actualExp == bindExp) return true;
+        if (actualExp.indexOf(bindExp) === 0) {
+          return actualExp.charAt(bindExp.length) == &#039;|&#039;;
+        }
+      }
+    };
+  } else if (bindExp) {
+    match = function(actualExp) {
+      return actualExp &amp;&amp; bindExp.exec(actualExp);
+    };
+  } else {
+    match = function(actualExp) {
+      return !!actualExp;
+    };
+  }
+  var selection = this.find(bindSelector);
+  if (this.is(bindSelector)) {
+    selection = selection.add(this);
+  }
+
+  function push(value) {
+    if (value === undefined) {
+      value = &#039;&#039;;
+    } else if (typeof value !== &#039;string&#039;) {
+      value = angular.toJson(value);
+    }
+    result.push(&#039;&#039; + value);
+  }
+
+  selection.each(function() {
+    var element = windowJquery(this),
+        bindings;
+    if (bindings = element.data(&#039;$binding&#039;)) {
+      for (var expressions = [], binding, j=0, jj=bindings.length; j &lt; jj; j++) {
+        binding = bindings[j];
+
+        if (binding.expressions) {
+          expressions = binding.expressions;
+        } else {
+          expressions = [binding];
+        }
+        for (var scope, expression, i = 0, ii = expressions.length; i &lt; ii; i++) {
+          expression = expressions[i];
+          if (match(expression)) {
+            scope = scope || element.scope();
+            push(scope.$eval(expression));
+          }
+        }
+      }
+    }
+  });
+  return result;
+};</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>
